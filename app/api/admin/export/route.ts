@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import { store, getVoteCount } from "@/lib/store";
+import { store, getVoteCounts } from "@/lib/store";
 
 function isAuthorized(request: NextRequest): boolean {
   const passcode =
@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Passcode ไม่ถูกต้อง" }, { status: 401 });
   }
 
+  const voteCounts = getVoteCounts();
   const entries = Array.from(store.entries.values())
-    .map((entry) => ({ ...entry, voteCount: getVoteCount(entry.id) }))
+    .map((entry) => ({ ...entry, voteCount: voteCounts.get(entry.id) ?? 0 }))
     .sort((a, b) => b.voteCount - a.voteCount || a.createdAt - b.createdAt);
 
   const rows = entries.map((entry, index) => ({

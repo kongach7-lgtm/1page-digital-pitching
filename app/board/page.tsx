@@ -48,7 +48,7 @@ export default function BoardPage() {
   useEffect(() => {
     setHasVoted(Boolean(localStorage.getItem("pitching_voted_studentId")));
     fetchEntries();
-    const interval = setInterval(fetchEntries, 4000);
+    const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
   }, [fetchEntries]);
 

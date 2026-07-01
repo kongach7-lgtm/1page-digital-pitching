@@ -46,7 +46,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authorized) return;
     fetchEntries();
-    const interval = setInterval(fetchEntries, 4000);
+    const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
   }, [authorized, fetchEntries]);
 

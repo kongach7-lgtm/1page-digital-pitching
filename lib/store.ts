@@ -28,3 +28,13 @@ export function getVoteCount(entryId: string): number {
   }
   return count;
 }
+
+// O(entries + votes) instead of calling getVoteCount per entry (O(entries * votes)) —
+// matters once submissions scale into the hundreds.
+export function getVoteCounts(): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const vote of store.votes.values()) {
+    counts.set(vote.entryId, (counts.get(vote.entryId) ?? 0) + 1);
+  }
+  return counts;
+}

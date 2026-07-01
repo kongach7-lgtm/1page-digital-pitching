@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { store, getVoteCount } from "@/lib/store";
+import { store, getVoteCounts } from "@/lib/store";
 import { saveUploadedImage } from "@/lib/image";
 import type { Entry } from "@/lib/types";
 
 export async function GET() {
+  const voteCounts = getVoteCounts();
   const entries = Array.from(store.entries.values())
-    .map((entry) => ({ ...entry, voteCount: getVoteCount(entry.id) }))
+    .map((entry) => ({ ...entry, voteCount: voteCounts.get(entry.id) ?? 0 }))
     .sort((a, b) => b.voteCount - a.voteCount || a.createdAt - b.createdAt);
 
   return NextResponse.json({

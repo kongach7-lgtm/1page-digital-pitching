@@ -41,5 +41,5 @@ Railway รองรับ Next.js แบบ zero-config และให้ pers
 
 - **ข้อมูลหายเมื่อ redeploy/restart** — เป็นดีไซน์ตั้งใจ (in-memory store, ไม่มี database) ต้องมั่นใจว่า deploy เสร็จและเสถียรก่อนเริ่มคลาส อย่า push โค้ดใหม่ระหว่างทำกิจกรรม
 - **รูปภาพเก็บบน disk ของ container** — ถ้า deploy platform ใช้ ephemeral filesystem (เช่น redeploy ใหม่ทุกครั้งที่ push) ไฟล์รูปจะหายไปพร้อมกับ redeploy เช่นกัน ซึ่งสอดคล้องกับดีไซน์ session-based ของระบบ
-- **200 concurrent users + polling ทุก 4 วิ** ≈ 50 req/s บน endpoint `/api/entries` — ทดสอบ load ก่อนใช้งานจริงกับคลาสขนาดใหญ่ถ้ากังวลเรื่อง performance
+- **รองรับ 500 concurrent users + polling ทุก 5 วิ** ≈ 100 req/s บน endpoint `/api/entries` (vote counting คำนวณแบบ O(entries + votes) ไม่ใช่ nested loop แล้ว) — ตัวแอปเองรับโหลดนี้ได้สบายบน Node process เดียว แต่ **แนะนำให้ตรวจสอบ CPU/RAM ของแผน Railway/Render ที่ใช้อยู่ด้วย** เพราะ resource ของ hosting plan (ไม่ใช่โค้ด) มักเป็นคอขวดจริงเมื่อ concurrent users เพิ่มขึ้น ถ้าเป็นแผนฟรี/starter ควรทดสอบ load ก่อนใช้งานจริงกับคลาสขนาดใหญ่
 - **Passcode**: อย่า commit `.env.local` ขึ้น git (มีอยู่ใน `.gitignore` แล้ว) ตั้งค่าผ่าน Environment Variable บน hosting platform เท่านั้น
