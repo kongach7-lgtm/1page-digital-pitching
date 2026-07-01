@@ -46,7 +46,9 @@ export default function BoardPage() {
   }, []);
 
   useEffect(() => {
-    setHasVoted(Boolean(localStorage.getItem("pitching_voted_studentId")));
+    // ใช้ sessionStorage ไม่ใช่ localStorage เพราะเครื่อง/เบราว์เซอร์เดียวกันอาจมีนักศึกษาหลายคน
+    // ผลัดกันใช้ (เช่น คอมพิวเตอร์ในห้องเรียน) — localStorage จะติดค้ามข้ามคนไปเรื่อยๆ
+    setHasVoted(Boolean(sessionStorage.getItem("pitching_voted_studentId")));
     fetchEntries();
     const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
@@ -74,7 +76,7 @@ export default function BoardPage() {
       if (!res.ok) {
         return data.error ?? "โหวตไม่สำเร็จ กรุณาลองใหม่";
       }
-      localStorage.setItem("pitching_voted_studentId", voterStudentId);
+      sessionStorage.setItem("pitching_voted_studentId", voterStudentId);
       setHasVoted(true);
       setVotingEntryId(null);
       fetchEntries();
