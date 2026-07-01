@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
   if (!name) errors.name = "กรุณากรอกชื่อ-นามสกุล";
   if (!studentId) errors.studentId = "กรุณากรอกรหัสนักศึกษา";
   if (!ideaName) errors.ideaName = "กรุณากรอกชื่อไอเดีย/แบรนด์";
-  if (!(image instanceof File) || image.size === 0) {
+  // เลี่ยงใช้ `instanceof File` เพราะ global File constructor ไม่มีในบาง Node.js runtime
+  // (เจอ "ReferenceError: File is not defined" บน production แม้ทำงานปกติในเครื่อง dev)
+  if (typeof image === "string" || !image || image.size === 0) {
     errors.image = "กรุณาแนบรูปถ่ายกระดาษ 1 แผ่น";
   }
 
