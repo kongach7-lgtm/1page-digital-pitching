@@ -1,0 +1,8 @@
+import { NextRequest, NextResponse } from "next/server";
+import { store } from "@/lib/store";
+
+export async function GET(request: NextRequest) {
+  const studentId = request.nextUrl.searchParams.get("studentId")?.trim() ?? "";
+  const exists = studentId.length > 0 && store.entriesByStudentId.has(studentId);
+  return NextResponse.json({ exists });
+}
