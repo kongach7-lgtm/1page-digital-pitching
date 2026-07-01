@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type EntryWithVotes = {
   id: string;
@@ -25,6 +25,21 @@ export default function AdminPage() {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const [rosterCount, setRosterCount] = useState<number | null>(null);
+  const [uploadingRoster, setUploadingRoster] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [rosterMessage, setRosterMessage] = useState<string | null>(null);
+  const rosterFileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchRosterCount = useCallback(async (currentPasscode: string) => {
+    const res = await fetch("/api/admin/roster", {
+      headers: { "x-admin-passcode": currentPasscode },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    setRosterCount(data.count ?? 0);
+  }, []);
+
   const fetchEntries = useCallback(async () => {
     const res = await fetch("/api/entries", { cache: "no-store" });
     const data = await res.json();
@@ -46,8 +61,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authorized) return;
     fetchEntries();
+    fetchRosterCount(passcode);
     const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorized, fetchEntries]);
 
   const handleLogin = async () => {
@@ -98,6 +115,39 @@ export default function AdminPage() {
       setActionError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleRosterUpload = async () => {
+    const file = rosterFileInputRef.current?.files?.[0];
+    if (!file) {
+      setRosterError("กรุณาเลือกไฟล์ Excel (.xlsx) ก่อน");
+      return;
+    }
+
+    setUploadingRoster(true);
+    setRosterError(null);
+    setRosterMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/roster", {
+        method: "POST",
+        headers: { "x-admin-passcode": passcode },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRosterError(data.error ?? "อัปโหลดไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      setRosterCount(data.count ?? 0);
+      setRosterMessage(`โหลดรายชื่อนักศึกษาแล้ว ${data.count} คน`);
+      if (rosterFileInputRef.current) rosterFileInputRef.current.value = "";
+    } catch {
+      setRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setUploadingRoster(false);
     }
   };
 
@@ -175,6 +225,39 @@ export default function AdminPage() {
         </header>
 
         {actionError && <p className="text-red-400 text-sm mb-4">{actionError}</p>}
+
+        <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+          <h2 className="font-semibold text-white mb-1">อัปโหลดรายชื่อนักศึกษา (Excel)</h2>
+          <p className="text-white/50 text-sm mb-3">
+            ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสนักศึกษา</span> และ{" "}
+            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
+            (ห้ามมีหัวตาราง) เมื่ออัปโหลดแล้ว ระบบจะตรวจสอบว่ารหัสนักศึกษาที่กรอกหน้าแรกมีอยู่ในรายชื่อนี้ก่อนให้ส่งผลงาน
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={rosterFileInputRef}
+              type="file"
+              accept=".xlsx"
+              className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
+            />
+            <button
+              onClick={handleRosterUpload}
+              disabled={uploadingRoster}
+              className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+            >
+              {uploadingRoster ? "กำลังอัปโหลด..." : "อัปโหลด"}
+            </button>
+            <span className="text-white/50 text-sm">
+              {rosterCount === null
+                ? ""
+                : rosterCount === 0
+                ? "ยังไม่ได้อัปโหลดรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
+                : `มีรายชื่อในระบบ ${rosterCount} คน`}
+            </span>
+          </div>
+          {rosterError && <p className="text-red-400 text-sm mt-2">{rosterError}</p>}
+          {rosterMessage && <p className="text-green-400 text-sm mt-2">{rosterMessage}</p>}
+        </div>
 
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full text-sm">

@@ -5,6 +5,7 @@ type Store = {
   entriesByStudentId: Map<string, string>;
   votes: Map<string, Vote>;
   votedStudentIds: Set<string>;
+  roster: Map<string, string>; // studentId -> name, uploaded by instructor
 };
 
 function createStore(): Store {
@@ -13,6 +14,7 @@ function createStore(): Store {
     entriesByStudentId: new Map(),
     votes: new Map(),
     votedStudentIds: new Set(),
+    roster: new Map(),
   };
 }
 

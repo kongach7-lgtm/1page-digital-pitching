@@ -54,6 +54,12 @@ export default function BoardPage() {
 
   const handleVote = async (voterStudentId: string): Promise<string | null> => {
     if (!votingEntryId) return null;
+
+    const identifiedStudentId = sessionStorage.getItem("pitching_studentId");
+    if (identifiedStudentId && voterStudentId !== identifiedStudentId) {
+      return "รหัสนักศึกษาไม่ตรงกับที่กรอกไว้ตอนแรก กรุณากรอกรหัสให้ถูกต้อง";
+    }
+
     try {
       const res = await fetch("/api/votes", {
         method: "POST",

@@ -25,6 +25,10 @@ export default function HomePage() {
         `/api/entries/check?studentId=${encodeURIComponent(studentId.trim())}`
       );
       const data = await res.json();
+      if (!data.rosterValid) {
+        setErrors({ studentId: "ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบและกรอกรหัสนักศึกษาให้ถูกต้อง" });
+        return;
+      }
       if (data.exists) {
         setAlreadySubmitted(true);
         return;
