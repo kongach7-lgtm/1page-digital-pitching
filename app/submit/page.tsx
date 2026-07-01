@@ -84,6 +84,12 @@ export default function SubmitPage() {
           {name} · รหัส {studentId}
         </p>
 
+        {(errors.studentId || errors.name) && (
+          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-400/40 text-red-300 text-sm px-3 py-2">
+            {errors.studentId || errors.name}
+          </div>
+        )}
+
         <label className="block mb-4">
           <span className="text-sm text-white/80">ชื่อไอเดีย/แบรนด์ *</span>
           <input
