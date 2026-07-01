@@ -1,8 +1,8 @@
 node_modules
 .next
 out
-public/uploads/*
-!public/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
 .env.local
 *.log
 *.tsbuildinfo

@@ -3,7 +3,10 @@ import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+// เก็บนอก public/ เพราะไฟล์ที่เขียนตอน runtime (หลัง build) ไม่ถูก serve
+// เสมอไปโดย Next.js production server บาง hosting setup — ให้ /api/uploads/[filename] อ่านไฟล์
+// จาก process.cwd() ตรงๆ แทน จะชัวร์กว่าในทุก environment
+const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/heic", "image/heif"];
 
@@ -33,11 +36,11 @@ export async function saveUploadedImage(file: File): Promise<SaveImageResult> {
       .resize({ width: 1200, withoutEnlargement: true })
       .jpeg({ quality: 70 })
       .toFile(path.join(UPLOAD_DIR, filename));
-    return { url: `/uploads/${filename}` };
+    return { url: `/api/uploads/${filename}` };
   } catch {
     const ext = path.extname(file.name) || ".jpg";
     const fallbackName = `${randomUUID()}${ext}`;
     await writeFile(path.join(UPLOAD_DIR, fallbackName), buffer);
-    return { url: `/uploads/${fallbackName}` };
+    return { url: `/api/uploads/${fallbackName}` };
   }
 }

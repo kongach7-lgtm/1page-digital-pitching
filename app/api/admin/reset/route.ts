@@ -18,7 +18,7 @@ export async function DELETE(request: NextRequest) {
   store.votes.clear();
   store.votedStudentIds.clear();
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  const uploadDir = path.join(process.cwd(), "uploads");
   try {
     const files = await readdir(uploadDir);
     await Promise.all(
