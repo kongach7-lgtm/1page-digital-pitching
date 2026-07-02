@@ -111,6 +111,7 @@ export default function SubmitPage() {
             onChange={handleFileChange}
             className="mt-1 w-full text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
           />
+          <p className="text-white/40 text-xs mt-1">ขนาดไฟล์ไม่เกิน 5MB</p>
           {imagePreview && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
