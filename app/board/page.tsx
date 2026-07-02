@@ -6,14 +6,20 @@ import VoteConfirmModal from "@/components/VoteConfirmModal";
 
 type EntryWithVotes = {
   id: string;
-  ideaName: string;
   name: string;
   studentId: string;
   imageUrl: string;
-  problem: string;
-  price: string;
+  field1: string;
+  field2: string;
+  field3: string;
   voteCount: number;
 };
+
+const DEFAULT_LABELS: [string, string, string] = [
+  "ชื่อไอเดีย/แบรนด์",
+  "ปัญหาที่แก้ไข",
+  "ราคาขาย",
+];
 
 function getVoterFingerprint(): string {
   const key = "pitching_voter_token";
@@ -31,6 +37,18 @@ export default function BoardPage() {
   const [hasVoted, setHasVoted] = useState(false);
   const [votingEntryId, setVotingEntryId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [projectName, setProjectName] = useState("1-Page Digital Pitching");
+  const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.config?.projectName) setProjectName(data.config.projectName);
+        if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -90,9 +108,9 @@ export default function BoardPage() {
     <main className="min-h-screen px-4 py-8">
       <div className="max-w-6xl mx-auto">
         <header className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-badge">กระดานผลงาน</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-badge">{projectName}</h1>
           <p className="text-white/60 mt-1">
-            {entries.length} ผลงาน · {totalVotes} โหวต
+            กระดานผลงาน · {entries.length} ผลงาน · {totalVotes} โหวต
           </p>
           {hasVoted && (
             <p className="text-brand-accent text-sm mt-2">คุณโหวตแล้ว ขอบคุณที่ร่วมกิจกรรม 🎉</p>
@@ -111,6 +129,7 @@ export default function BoardPage() {
               rank={index + 1}
               disabled={hasVoted}
               onVote={(entryId) => setVotingEntryId(entryId)}
+              fieldLabels={fieldLabels}
             />
           ))}
         </div>

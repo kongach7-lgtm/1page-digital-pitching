@@ -18,13 +18,14 @@ export async function GET(request: NextRequest) {
     .map((entry) => ({ ...entry, voteCount: voteCounts.get(entry.id) ?? 0 }))
     .sort((a, b) => b.voteCount - a.voteCount || a.createdAt - b.createdAt);
 
+  const [label1, label2, label3] = store.config.fieldLabels;
   const rows = entries.map((entry, index) => ({
     อันดับ: index + 1,
-    ชื่อไอเดีย: entry.ideaName,
     ชื่อนักศึกษา: entry.name,
     รหัสนักศึกษา: entry.studentId,
-    ปัญหาที่แก้: entry.problem,
-    ราคาขาย: entry.price,
+    [label1]: entry.field1,
+    [label2]: entry.field2,
+    [label3]: entry.field3,
     คะแนนโหวต: entry.voteCount,
     เวลาส่งงาน: new Date(entry.createdAt).toLocaleString("th-TH"),
   }));

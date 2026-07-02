@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
@@ -10,6 +10,14 @@ export default function HomePage() {
   const [errors, setErrors] = useState<{ name?: string; studentId?: string }>({});
   const [checking, setChecking] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [projectName, setProjectName] = useState("1-Page Digital Pitching");
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => data.config?.projectName && setProjectName(data.config.projectName))
+      .catch(() => {});
+  }, []);
 
   const handleNext = async () => {
     const nextErrors: typeof errors = {};
@@ -47,7 +55,7 @@ export default function HomePage() {
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-badge text-center mb-1">
-          1-Page Digital Pitching
+          {projectName}
         </h1>
         <p className="text-center text-white/60 mb-6">ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน</p>
 

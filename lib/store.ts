@@ -1,4 +1,4 @@
-import type { Entry, Vote } from "./types";
+import type { Entry, SiteConfig, Vote } from "./types";
 
 type Store = {
   entries: Map<string, Entry>;
@@ -6,7 +6,15 @@ type Store = {
   votes: Map<string, Vote>;
   votedStudentIds: Set<string>;
   roster: Map<string, string>; // studentId -> name, uploaded by instructor
+  config: SiteConfig;
 };
+
+export function defaultConfig(): SiteConfig {
+  return {
+    projectName: "1-Page Digital Pitching",
+    fieldLabels: ["ชื่อไอเดีย/แบรนด์", "ปัญหาที่แก้ไข", "ราคาขาย"],
+  };
+}
 
 function createStore(): Store {
   return {
@@ -15,6 +23,7 @@ function createStore(): Store {
     votes: new Map(),
     votedStudentIds: new Set(),
     roster: new Map(),
+    config: defaultConfig(),
   };
 }
 

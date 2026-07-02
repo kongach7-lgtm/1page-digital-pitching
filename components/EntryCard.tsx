@@ -2,12 +2,12 @@
 
 type EntryWithVotes = {
   id: string;
-  ideaName: string;
   name: string;
   studentId: string;
   imageUrl: string;
-  problem: string;
-  price: string;
+  field1: string;
+  field2: string;
+  field3: string;
   voteCount: number;
 };
 
@@ -16,11 +16,13 @@ export default function EntryCard({
   rank,
   disabled,
   onVote,
+  fieldLabels,
 }: {
   entry: EntryWithVotes;
   rank: number;
   disabled: boolean;
   onVote: (entryId: string) => void;
+  fieldLabels: [string, string, string];
 }) {
   const isTop10 = rank <= 10;
 
@@ -37,18 +39,18 @@ export default function EntryCard({
       )}
       <div className="aspect-[4/3] bg-black/30">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={entry.imageUrl} alt={entry.ideaName} className="w-full h-full object-cover" />
+        <img src={entry.imageUrl} alt={entry.field1} className="w-full h-full object-cover" />
       </div>
       <div className="p-3 flex flex-col gap-1 flex-1">
-        <h3 className="font-semibold text-white truncate">{entry.ideaName}</h3>
+        <h3 className="font-semibold text-white truncate">{entry.field1}</h3>
         <p className="text-white/50 text-sm truncate">โดย {entry.name}</p>
-        {entry.problem && (
+        {entry.field2 && (
           <p className="text-white/60 text-xs mt-1 line-clamp-2">
-            <span className="text-white/40">ปัญหาที่แก้:</span> {entry.problem}
+            <span className="text-white/40">{fieldLabels[1]}:</span> {entry.field2}
           </p>
         )}
-        {entry.price && (
-          <p className="text-brand-badge text-xs font-medium">{entry.price}</p>
+        {entry.field3 && (
+          <p className="text-brand-badge text-xs font-medium">{entry.field3}</p>
         )}
         <div className="mt-auto pt-2 flex items-center justify-between">
           <span className="text-white/70 text-sm">{entry.voteCount} โหวต</span>

@@ -22,15 +22,15 @@ export async function POST(request: NextRequest) {
 
   const name = String(formData.get("name") ?? "").trim();
   const studentId = String(formData.get("studentId") ?? "").trim();
-  const ideaName = String(formData.get("ideaName") ?? "").trim();
-  const problem = String(formData.get("problem") ?? "").trim();
-  const price = String(formData.get("price") ?? "").trim();
+  const field1 = String(formData.get("field1") ?? "").trim();
+  const field2 = String(formData.get("field2") ?? "").trim();
+  const field3 = String(formData.get("field3") ?? "").trim();
   const image = formData.get("image");
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "กรุณากรอกชื่อ-นามสกุล";
   if (!studentId) errors.studentId = "กรุณากรอกรหัสนักศึกษา";
-  if (!ideaName) errors.ideaName = "กรุณากรอกชื่อไอเดีย/แบรนด์";
+  if (!field1) errors.field1 = `กรุณากรอก${store.config.fieldLabels[0]}`;
   // เลี่ยงใช้ `instanceof File` เพราะ global File constructor ไม่มีในบาง Node.js runtime
   // (เจอ "ReferenceError: File is not defined" บน production แม้ทำงานปกติในเครื่อง dev)
   if (typeof image === "string" || !image || image.size === 0) {
@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
     id: randomUUID(),
     name,
     studentId,
-    ideaName,
-    problem,
-    price,
+    field1,
+    field2,
+    field3,
     imageUrl: imageResult.url,
     createdAt: Date.now(),
   };

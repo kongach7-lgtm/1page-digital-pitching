@@ -3,13 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const DEFAULT_LABELS: [string, string, string] = [
+  "ชื่อไอเดีย/แบรนด์",
+  "ปัญหาที่แก้ไข",
+  "ราคาขาย",
+];
+
 export default function SubmitPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [ideaName, setIdeaName] = useState("");
-  const [problem, setProblem] = useState("");
-  const [price, setPrice] = useState("");
+  const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
+  const [field1, setField1] = useState("");
+  const [field2, setField2] = useState("");
+  const [field3, setField3] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -27,6 +34,13 @@ export default function SubmitPage() {
     setStudentId(storedStudentId);
   }, [router]);
 
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => data.config?.fieldLabels && setFieldLabels(data.config.fieldLabels))
+      .catch(() => {});
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
@@ -42,7 +56,7 @@ export default function SubmitPage() {
 
   const handleSubmit = async () => {
     const nextErrors: Record<string, string> = {};
-    if (!ideaName.trim()) nextErrors.ideaName = "กรุณากรอกชื่อไอเดีย/แบรนด์";
+    if (!field1.trim()) nextErrors.field1 = `กรุณากรอก${fieldLabels[0]}`;
     if (!imageFile) nextErrors.image = "กรุณาแนบรูปถ่ายกระดาษ 1 แผ่น";
     if (imageFile && imageFile.size > 5 * 1024 * 1024) nextErrors.image = "ไฟล์รูปต้องไม่เกิน 5MB";
     setErrors(nextErrors);
@@ -53,22 +67,22 @@ export default function SubmitPage() {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("studentId", studentId);
-      formData.append("ideaName", ideaName.trim());
-      formData.append("problem", problem.trim());
-      formData.append("price", price.trim());
+      formData.append("field1", field1.trim());
+      formData.append("field2", field2.trim());
+      formData.append("field3", field3.trim());
       formData.append("image", imageFile as File);
 
       const res = await fetch("/api/entries", { method: "POST", body: formData });
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors(data.errors ?? { ideaName: "ส่งผลงานไม่สำเร็จ กรุณาลองใหม่" });
+        setErrors(data.errors ?? { field1: "ส่งผลงานไม่สำเร็จ กรุณาลองใหม่" });
         return;
       }
 
       router.push("/board");
     } catch {
-      setErrors({ ideaName: "เชื่อมต่อไม่ได้ กรุณาลองใหม่" });
+      setErrors({ field1: "เชื่อมต่อไม่ได้ กรุณาลองใหม่" });
     } finally {
       setSubmitting(false);
     }
@@ -91,14 +105,13 @@ export default function SubmitPage() {
         )}
 
         <label className="block mb-4">
-          <span className="text-sm text-white/80">ชื่อไอเดีย/แบรนด์ *</span>
+          <span className="text-sm text-white/80">{fieldLabels[0]} *</span>
           <input
             className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
-            value={ideaName}
-            onChange={(e) => setIdeaName(e.target.value)}
-            placeholder="เช่น GreenBite"
+            value={field1}
+            onChange={(e) => setField1(e.target.value)}
           />
-          {errors.ideaName && <p className="text-red-400 text-sm mt-1">{errors.ideaName}</p>}
+          {errors.field1 && <p className="text-red-400 text-sm mt-1">{errors.field1}</p>}
         </label>
 
         <label className="block mb-4">
@@ -124,23 +137,21 @@ export default function SubmitPage() {
         </label>
 
         <label className="block mb-4">
-          <span className="text-sm text-white/80">ปัญหาที่แก้ไข</span>
+          <span className="text-sm text-white/80">{fieldLabels[1]}</span>
           <textarea
             className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
             rows={3}
-            value={problem}
-            onChange={(e) => setProblem(e.target.value)}
-            placeholder="ลูกค้ามีปัญหาอะไร ผลงานนี้ช่วยแก้อย่างไร"
+            value={field2}
+            onChange={(e) => setField2(e.target.value)}
           />
         </label>
 
         <label className="block mb-6">
-          <span className="text-sm text-white/80">ราคาขาย</span>
+          <span className="text-sm text-white/80">{fieldLabels[2]}</span>
           <input
             className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="เช่น 199 บาท"
+            value={field3}
+            onChange={(e) => setField3(e.target.value)}
           />
         </label>
 
