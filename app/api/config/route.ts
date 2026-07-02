@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
 
+// ไม่มี arg และไม่เรียก dynamic API เลย ทำให้ Next.js เข้าใจผิดว่า route นี้ static
+// ได้ (bake ค่า default ตอน build แล้ว method อื่นๆ เช่น PUT หายไปจาก production build)
+// ต้องบังคับ dynamic ไว้เพื่อให้ store.config ถูกอ่าน/เขียนสดทุก request
+export const dynamic = "force-dynamic";
+
 function isAuthorized(request: NextRequest): boolean {
   const passcode = request.headers.get("x-admin-passcode");
   return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
