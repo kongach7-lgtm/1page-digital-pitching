@@ -13,6 +13,7 @@ export default function SubmitPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
   const [field1, setField1] = useState("");
   const [field2, setField2] = useState("");
@@ -37,7 +38,10 @@ export default function SubmitPage() {
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
-      .then((data) => data.config?.fieldLabels && setFieldLabels(data.config.fieldLabels))
+      .then((data) => {
+        if (data.config?.projectName) setProjectName(data.config.projectName);
+        if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+      })
       .catch(() => {});
   }, []);
 
@@ -57,7 +61,7 @@ export default function SubmitPage() {
   const handleSubmit = async () => {
     const nextErrors: Record<string, string> = {};
     if (!field1.trim()) nextErrors.field1 = `กรุณากรอก${fieldLabels[0]}`;
-    if (!imageFile) nextErrors.image = "กรุณาแนบรูปถ่ายกระดาษ 1 แผ่น";
+    if (!imageFile) nextErrors.image = "กรุณาแนบรูปถ่ายผลงาน";
     if (imageFile && imageFile.size > 5 * 1024 * 1024) nextErrors.image = "ไฟล์รูปต้องไม่เกิน 5MB";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -92,7 +96,7 @@ export default function SubmitPage() {
     <main className="min-h-screen px-4 py-8 sm:py-10">
       <div className="w-full max-w-lg mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
         <h1 className="text-xl sm:text-2xl font-bold text-brand-badge mb-1">
-          ส่งผลงาน 1-Page Pitch
+          ส่งผลงาน{projectName}
         </h1>
         <p className="text-white/60 text-sm mb-6">
           {name} · รหัส {studentId}
@@ -115,7 +119,7 @@ export default function SubmitPage() {
         </label>
 
         <label className="block mb-4">
-          <span className="text-sm text-white/80">รูปถ่ายกระดาษ 1 แผ่น *</span>
+          <span className="text-sm text-white/80">รูปถ่ายผลงาน *</span>
           <input
             ref={fileInputRef}
             type="file"
