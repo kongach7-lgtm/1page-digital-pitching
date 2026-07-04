@@ -39,6 +39,7 @@ export default function AdminPage() {
   const rosterFileInputRef = useRef<HTMLInputElement>(null);
 
   const [projectName, setProjectName] = useState("");
+  const [tagline, setTagline] = useState("");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function AdminPage() {
     if (!res.ok) return;
     const data = await res.json();
     if (data.config?.projectName) setProjectName(data.config.projectName);
+    if (data.config?.tagline !== undefined) setTagline(data.config.tagline);
     if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
   }, []);
 
@@ -97,7 +99,7 @@ export default function AdminPage() {
       const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json", "x-admin-passcode": passcode },
-        body: JSON.stringify({ projectName, fieldLabels }),
+        body: JSON.stringify({ projectName, tagline, fieldLabels }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -282,6 +284,14 @@ export default function AdminPage() {
               className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
+            />
+          </label>
+          <label className="block mb-3">
+            <span className="text-sm text-white/80">ข้อความบรรทัดใต้ชื่อโปรเจกต์ (หน้าลงทะเบียน)</span>
+            <input
+              className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
             />
           </label>
           <div className="grid sm:grid-cols-3 gap-3 mb-3">

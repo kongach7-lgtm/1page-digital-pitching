@@ -22,6 +22,7 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const projectName = String(body?.projectName ?? "").trim();
+  const tagline = String(body?.tagline ?? "").trim();
   const fieldLabels = Array.isArray(body?.fieldLabels)
     ? body.fieldLabels.map((label: unknown) => String(label ?? "").trim())
     : [];
@@ -38,6 +39,7 @@ export async function PUT(request: NextRequest) {
 
   store.config = {
     projectName,
+    tagline,
     fieldLabels: fieldLabels as [string, string, string],
   };
 

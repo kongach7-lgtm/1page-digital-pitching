@@ -12,6 +12,7 @@ type Store = {
 export function defaultConfig(): SiteConfig {
   return {
     projectName: "1-Page Digital Pitching",
+    tagline: "ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน",
     fieldLabels: ["ชื่อไอเดีย/แบรนด์", "ปัญหาที่แก้ไข", "ราคาขาย"],
   };
 }

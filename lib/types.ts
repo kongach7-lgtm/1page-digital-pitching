@@ -23,5 +23,6 @@ export type EntryWithVotes = Entry & { voteCount: number };
 // และ label ของ 3 หัวข้อที่นักศึกษาต้องกรอก (field1 คือหัวข้อหลัก/บังคับ ใช้เป็นชื่อบนการ์ดผลงาน)
 export type SiteConfig = {
   projectName: string;
+  tagline: string;
   fieldLabels: [string, string, string];
 };

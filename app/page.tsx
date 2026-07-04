@@ -11,11 +11,15 @@ export default function HomePage() {
   const [checking, setChecking] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
+  const [tagline, setTagline] = useState("ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน");
 
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
-      .then((data) => data.config?.projectName && setProjectName(data.config.projectName))
+      .then((data) => {
+        if (data.config?.projectName) setProjectName(data.config.projectName);
+        if (data.config?.tagline !== undefined) setTagline(data.config.tagline);
+      })
       .catch(() => {});
   }, []);
 
@@ -57,7 +61,7 @@ export default function HomePage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-badge text-center mb-1">
           {projectName}
         </h1>
-        <p className="text-center text-white/60 mb-6">ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน</p>
+        {tagline && <p className="text-center text-white/60 mb-6">{tagline}</p>}
 
         <label className="block mb-4">
           <span className="text-sm text-white/80">ชื่อ-นามสกุล</span>
