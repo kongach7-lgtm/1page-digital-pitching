@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import EntryCard from "@/components/EntryCard";
 import VoteConfirmModal from "@/components/VoteConfirmModal";
+import StudentBackground from "@/components/StudentBackground";
 
 type EntryWithVotes = {
   id: string;
@@ -105,39 +106,43 @@ export default function BoardPage() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-badge">{projectName}</h1>
-          <p className="text-white/60 mt-1">
-            กระดานผลงาน · {entries.length} ผลงาน · {totalVotes} โหวต
-          </p>
-          {hasVoted && (
-            <p className="text-brand-accent text-sm mt-2">คุณโหวตแล้ว ขอบคุณที่ร่วมกิจกรรม 🎉</p>
+    <StudentBackground>
+      <main className="px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <header className="text-center mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-fuchsia-600">{projectName}</h1>
+            <p className="text-slate-500 mt-1">
+              กระดานผลงาน · {entries.length} ผลงาน · {totalVotes} โหวต
+            </p>
+            {hasVoted && (
+              <p className="text-brand-accent text-sm mt-2 font-medium">
+                คุณโหวตแล้ว ขอบคุณที่ร่วมกิจกรรม 🎉
+              </p>
+            )}
+          </header>
+
+          {loaded && entries.length === 0 && (
+            <p className="text-center text-slate-400 mt-16">ยังไม่มีผลงานที่ส่งเข้ามา</p>
           )}
-        </header>
 
-        {loaded && entries.length === 0 && (
-          <p className="text-center text-white/40 mt-16">ยังไม่มีผลงานที่ส่งเข้ามา</p>
-        )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {entries.map((entry, index) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              rank={index + 1}
-              disabled={hasVoted}
-              onVote={(entryId) => setVotingEntryId(entryId)}
-              fieldLabels={fieldLabels}
-            />
-          ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {entries.map((entry, index) => (
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                rank={index + 1}
+                disabled={hasVoted}
+                onVote={(entryId) => setVotingEntryId(entryId)}
+                fieldLabels={fieldLabels}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {votingEntryId && (
-        <VoteConfirmModal onClose={() => setVotingEntryId(null)} onConfirm={handleVote} />
-      )}
-    </main>
+        {votingEntryId && (
+          <VoteConfirmModal onClose={() => setVotingEntryId(null)} onConfirm={handleVote} />
+        )}
+      </main>
+    </StudentBackground>
   );
 }

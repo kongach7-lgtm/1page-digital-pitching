@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import StudentBackground from "@/components/StudentBackground";
 
 const DEFAULT_LABELS: [string, string, string] = [
   "ชื่อไอเดีย/แบรนด์",
@@ -93,80 +94,82 @@ export default function SubmitPage() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:py-10">
-      <div className="w-full max-w-lg mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
-        <h1 className="text-xl sm:text-2xl font-bold text-brand-badge mb-1">
-          ส่งผลงาน{projectName}
-        </h1>
-        <p className="text-white/60 text-sm mb-6">
-          {name} · รหัส {studentId}
-        </p>
+    <StudentBackground>
+      <main className="px-4 py-8 sm:py-10">
+        <div className="w-full max-w-lg mx-auto bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-6 sm:p-8 shadow-xl shadow-orange-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-fuchsia-600 mb-1">
+            ส่งผลงาน{projectName}
+          </h1>
+          <p className="text-slate-500 text-sm mb-6">
+            {name} · รหัส {studentId}
+          </p>
 
-        {(errors.studentId || errors.name) && (
-          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-400/40 text-red-300 text-sm px-3 py-2">
-            {errors.studentId || errors.name}
-          </div>
-        )}
-
-        <label className="block mb-4">
-          <span className="text-sm text-white/80">{fieldLabels[0]} *</span>
-          <input
-            className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
-            value={field1}
-            onChange={(e) => setField1(e.target.value)}
-          />
-          {errors.field1 && <p className="text-red-400 text-sm mt-1">{errors.field1}</p>}
-        </label>
-
-        <label className="block mb-4">
-          <span className="text-sm text-white/80">รูปถ่ายผลงาน *</span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            className="mt-1 w-full text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
-          />
-          <p className="text-white/40 text-xs mt-1">ขนาดไฟล์ไม่เกิน 5MB</p>
-          {imagePreview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imagePreview}
-              alt="preview"
-              className="mt-3 rounded-lg max-h-64 object-contain border border-white/10"
-            />
+          {(errors.studentId || errors.name) && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-300 text-red-600 text-sm px-3 py-2">
+              {errors.studentId || errors.name}
+            </div>
           )}
-          {errors.image && <p className="text-red-400 text-sm mt-1">{errors.image}</p>}
-        </label>
 
-        <label className="block mb-4">
-          <span className="text-sm text-white/80">{fieldLabels[1]}</span>
-          <textarea
-            className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
-            rows={3}
-            value={field2}
-            onChange={(e) => setField2(e.target.value)}
-          />
-        </label>
+          <label className="block mb-4">
+            <span className="text-sm text-slate-600">{fieldLabels[0]} *</span>
+            <input
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              value={field1}
+              onChange={(e) => setField1(e.target.value)}
+            />
+            {errors.field1 && <p className="text-red-500 text-sm mt-1">{errors.field1}</p>}
+          </label>
 
-        <label className="block mb-6">
-          <span className="text-sm text-white/80">{fieldLabels[2]}</span>
-          <input
-            className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
-            value={field3}
-            onChange={(e) => setField3(e.target.value)}
-          />
-        </label>
+          <label className="block mb-4">
+            <span className="text-sm text-slate-600">รูปถ่ายผลงาน *</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
+            />
+            <p className="text-slate-400 text-xs mt-1">ขนาดไฟล์ไม่เกิน 5MB</p>
+            {imagePreview && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imagePreview}
+                alt="preview"
+                className="mt-3 rounded-lg max-h-64 object-contain border border-slate-200"
+              />
+            )}
+            {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
+          </label>
 
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 transition"
-        >
-          {submitting ? "กำลังส่ง..." : "ส่งผลงาน"}
-        </button>
-      </div>
-    </main>
+          <label className="block mb-4">
+            <span className="text-sm text-slate-600">{fieldLabels[1]}</span>
+            <textarea
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              rows={3}
+              value={field2}
+              onChange={(e) => setField2(e.target.value)}
+            />
+          </label>
+
+          <label className="block mb-6">
+            <span className="text-sm text-slate-600">{fieldLabels[2]}</span>
+            <input
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              value={field3}
+              onChange={(e) => setField3(e.target.value)}
+            />
+          </label>
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 transition"
+          >
+            {submitting ? "กำลังส่ง..." : "ส่งผลงาน"}
+          </button>
+        </div>
+      </main>
+    </StudentBackground>
   );
 }
