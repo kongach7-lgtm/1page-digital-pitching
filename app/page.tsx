@@ -48,6 +48,7 @@ export default function HomePage() {
       }
       sessionStorage.setItem("pitching_name", name.trim());
       sessionStorage.setItem("pitching_studentId", studentId.trim());
+      if (data.sessionId) sessionStorage.setItem("pitching_sessionId", data.sessionId);
       router.push("/submit");
     } catch {
       setErrors({ studentId: "เชื่อมต่อไม่ได้ กรุณาลองใหม่" });

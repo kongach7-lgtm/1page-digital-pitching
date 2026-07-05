@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import EntryCard from "@/components/EntryCard";
 import VoteConfirmModal from "@/components/VoteConfirmModal";
 import StudentBackground from "@/components/StudentBackground";
@@ -33,6 +34,7 @@ function getVoterFingerprint(): string {
 }
 
 export default function BoardPage() {
+  const router = useRouter();
   const [entries, setEntries] = useState<EntryWithVotes[]>([]);
   const [totalVotes, setTotalVotes] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
@@ -72,6 +74,33 @@ export default function BoardPage() {
     const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
   }, [fetchEntries]);
+
+  useEffect(() => {
+    // ถ้าอาจารย์กด Reset Session ระหว่างที่นักศึกษาที่ login แล้วค้างหน้านี้อยู่
+    // ให้เด้งกลับไปหน้าแรกและล้าง session ในเครื่อง เพื่อบังคับให้ login ใหม่เสมอ
+    // (ผู้ที่แค่เข้ามาดูกระดานเฉยๆ โดยไม่ได้ login ไม่ต้องเด้ง เพราะไม่มี session ให้ล้าง)
+    if (!sessionStorage.getItem("pitching_studentId")) return;
+
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        const expected = sessionStorage.getItem("pitching_sessionId");
+        if (expected && data.sessionId && data.sessionId !== expected) {
+          sessionStorage.removeItem("pitching_name");
+          sessionStorage.removeItem("pitching_studentId");
+          sessionStorage.removeItem("pitching_sessionId");
+          sessionStorage.removeItem("pitching_voted_studentId");
+          localStorage.removeItem("pitching_voter_token");
+          router.replace("/");
+        }
+      } catch {
+        // เชื่อมต่อไม่ได้ รอ poll รอบถัดไป
+      }
+    };
+    const interval = setInterval(checkSession, 5000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const handleVote = async (voterStudentId: string): Promise<string | null> => {
     if (!votingEntryId) return null;

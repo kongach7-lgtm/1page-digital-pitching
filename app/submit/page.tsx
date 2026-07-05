@@ -46,6 +46,30 @@ export default function SubmitPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    // ถ้าอาจารย์กด Reset Session ระหว่างที่นักศึกษาค้างหน้านี้อยู่ ให้เด้งกลับไปหน้าแรก
+    // และล้าง session ในเครื่อง เพื่อบังคับให้ login ใหม่เสมอ
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        const expected = sessionStorage.getItem("pitching_sessionId");
+        if (expected && data.sessionId && data.sessionId !== expected) {
+          sessionStorage.removeItem("pitching_name");
+          sessionStorage.removeItem("pitching_studentId");
+          sessionStorage.removeItem("pitching_sessionId");
+          sessionStorage.removeItem("pitching_voted_studentId");
+          localStorage.removeItem("pitching_voter_token");
+          router.replace("/");
+        }
+      } catch {
+        // เชื่อมต่อไม่ได้ รอ poll รอบถัดไป
+      }
+    };
+    const interval = setInterval(checkSession, 5000);
+    return () => clearInterval(interval);
+  }, [router]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);

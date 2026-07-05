@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readdir, unlink } from "fs/promises";
+import { randomUUID } from "crypto";
 import path from "path";
 import { store } from "@/lib/store";
 
@@ -17,6 +18,9 @@ export async function DELETE(request: NextRequest) {
   store.entriesByStudentId.clear();
   store.votes.clear();
   store.votedStudentIds.clear();
+  // เปลี่ยน sessionId ทุกครั้งที่ reset — หน้า submit/board ของนักศึกษาที่เปิดค้างไว้
+  // จะตรวจพบว่าไม่ตรงกับตอน login แล้วเด้งกลับไปหน้าแรกให้ล็อกอินใหม่
+  store.sessionId = randomUUID();
 
   const uploadDir = path.join(process.cwd(), "uploads");
   try {

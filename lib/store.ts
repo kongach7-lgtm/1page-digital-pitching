@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { Entry, SiteConfig, Vote } from "./types";
 
 type Store = {
@@ -7,6 +8,8 @@ type Store = {
   votedStudentIds: Set<string>;
   roster: Map<string, string>; // studentId -> name, uploaded by instructor
   config: SiteConfig;
+  // เปลี่ยนค่าทุกครั้งที่ reset session — ฝั่งนักศึกษาใช้เทียบเพื่อรู้ว่าต้อง login ใหม่
+  sessionId: string;
 };
 
 export function defaultConfig(): SiteConfig {
@@ -25,6 +28,7 @@ function createStore(): Store {
     votedStudentIds: new Set(),
     roster: new Map(),
     config: defaultConfig(),
+    sessionId: randomUUID(),
   };
 }
 
