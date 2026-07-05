@@ -42,6 +42,7 @@ export default function BoardPage() {
   const [loaded, setLoaded] = useState(false);
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/config")
@@ -70,6 +71,7 @@ export default function BoardPage() {
     // ใช้ sessionStorage ไม่ใช่ localStorage เพราะเครื่อง/เบราว์เซอร์เดียวกันอาจมีนักศึกษาหลายคน
     // ผลัดกันใช้ (เช่น คอมพิวเตอร์ในห้องเรียน) — localStorage จะติดค้ามข้ามคนไปเรื่อยๆ
     setHasVoted(Boolean(sessionStorage.getItem("pitching_voted_studentId")));
+    setCurrentStudentId(sessionStorage.getItem("pitching_studentId"));
     fetchEntries();
     const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
@@ -163,6 +165,7 @@ export default function BoardPage() {
                 disabled={hasVoted}
                 onVote={(entryId) => setVotingEntryId(entryId)}
                 fieldLabels={fieldLabels}
+                currentStudentId={currentStudentId}
               />
             ))}
           </div>

@@ -17,14 +17,17 @@ export default function EntryCard({
   disabled,
   onVote,
   fieldLabels,
+  currentStudentId,
 }: {
   entry: EntryWithVotes;
   rank: number;
   disabled: boolean;
   onVote: (entryId: string) => void;
   fieldLabels: [string, string, string];
+  currentStudentId: string | null;
 }) {
   const isTop10 = rank <= 10;
+  const isOwnEntry = Boolean(currentStudentId) && currentStudentId === entry.studentId;
 
   return (
     <div
@@ -52,15 +55,24 @@ export default function EntryCard({
         {entry.field3 && (
           <p className="text-amber-600 text-xs font-medium">{entry.field3}</p>
         )}
-        <div className="mt-auto pt-2 flex items-center justify-between">
-          <span className="text-slate-500 text-sm">{entry.voteCount} โหวต</span>
-          <button
-            onClick={() => onVote(entry.id)}
-            disabled={disabled}
-            className="rounded-full bg-brand-accent disabled:bg-slate-100 disabled:text-slate-300 text-white w-10 h-10 flex items-center justify-center text-lg transition"
-          >
-            ❤️
-          </button>
+        <div className="mt-auto pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 text-sm">{entry.voteCount} โหวต</span>
+            {!isOwnEntry && (
+              <button
+                onClick={() => onVote(entry.id)}
+                disabled={disabled}
+                className="rounded-full bg-brand-accent disabled:bg-slate-100 disabled:text-slate-300 text-white w-10 h-10 flex items-center justify-center text-lg transition"
+              >
+                ❤️
+              </button>
+            )}
+          </div>
+          {isOwnEntry && (
+            <p className="mt-2 text-center text-[11px] leading-tight text-slate-400 bg-slate-100 rounded-lg py-1.5 px-1">
+              ไม่สามารถโหวตผลงานของตนเองได้
+            </p>
+          )}
         </div>
       </div>
     </div>
