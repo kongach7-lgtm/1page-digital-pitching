@@ -7,6 +7,22 @@
       "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "ideajam",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "ideajam-app",
+      "port": 3001,
+      "autoPort": true
+    },
+    {
+      "name": "activity-hub",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "activity-hub",
+      "port": 3002,
+      "autoPort": true
     }
   ]
 }

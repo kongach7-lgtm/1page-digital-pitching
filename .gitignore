@@ -7,3 +7,5 @@ uploads/*
 *.log
 *.tsbuildinfo
 .claude/scheduled_tasks.lock
+/ideajam-app
+/activity-hub
