@@ -23,6 +23,14 @@
       "cwd": "activity-hub",
       "port": 3002,
       "autoPort": true
+    },
+    {
+      "name": "presentation-queue",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "presentation-queue",
+      "port": 3003,
+      "autoPort": true
     }
   ]
 }
