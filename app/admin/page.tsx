@@ -38,6 +38,14 @@ export default function AdminPage() {
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
   const rosterFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [presentationCount, setPresentationCount] = useState<number | null>(null);
+  const [presentationUsedCount, setPresentationUsedCount] = useState(0);
+  const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  const [presentationError, setPresentationError] = useState<string | null>(null);
+  const [presentationMessage, setPresentationMessage] = useState<string | null>(null);
+  const [resettingQueue, setResettingQueue] = useState(false);
+  const presentationFileInputRef = useRef<HTMLInputElement>(null);
+
   const [projectName, setProjectName] = useState("");
   const [tagline, setTagline] = useState("");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
@@ -63,6 +71,16 @@ export default function AdminPage() {
     setRosterCount(data.count ?? 0);
   }, []);
 
+  const fetchPresentationCount = useCallback(async (currentPasscode: string) => {
+    const res = await fetch("/api/admin/presentation", {
+      headers: { "x-admin-passcode": currentPasscode },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    setPresentationCount(data.count ?? 0);
+    setPresentationUsedCount(data.usedCount ?? 0);
+  }, []);
+
   const fetchEntries = useCallback(async () => {
     const res = await fetch("/api/entries", { cache: "no-store" });
     const data = await res.json();
@@ -85,6 +103,7 @@ export default function AdminPage() {
     if (!authorized) return;
     fetchEntries();
     fetchRosterCount(passcode);
+    fetchPresentationCount(passcode);
     fetchConfig();
     const interval = setInterval(fetchEntries, 5000);
     return () => clearInterval(interval);
@@ -195,6 +214,63 @@ export default function AdminPage() {
       setRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
       setUploadingRoster(false);
+    }
+  };
+
+  const handlePresentationUpload = async () => {
+    const file = presentationFileInputRef.current?.files?.[0];
+    if (!file) {
+      setPresentationError("กรุณาเลือกไฟล์ Excel (.xlsx) ก่อน");
+      return;
+    }
+
+    setUploadingPresentation(true);
+    setPresentationError(null);
+    setPresentationMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/presentation", {
+        method: "POST",
+        headers: { "x-admin-passcode": passcode },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPresentationError(data.error ?? "อัปโหลดไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      setPresentationCount(data.count ?? 0);
+      setPresentationUsedCount(0);
+      setPresentationMessage(`โหลดรายชื่อกลุ่มนำเสนอแล้ว ${data.count} กลุ่ม`);
+      if (presentationFileInputRef.current) presentationFileInputRef.current.value = "";
+    } catch {
+      setPresentationError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setUploadingPresentation(false);
+    }
+  };
+
+  const handleResetQueue = async () => {
+    setResettingQueue(true);
+    setPresentationError(null);
+    setPresentationMessage(null);
+    try {
+      const res = await fetch("/api/admin/presentation", {
+        method: "DELETE",
+        headers: { "x-admin-passcode": passcode },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPresentationError(data.error ?? "รีเซ็ตคิวไม่สำเร็จ");
+        return;
+      }
+      setPresentationUsedCount(0);
+      setPresentationMessage("นำรายชื่อกลุ่มทั้งหมดกลับเข้าคิวแล้ว");
+    } catch {
+      setPresentationError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setResettingQueue(false);
     }
   };
 
@@ -352,6 +428,57 @@ export default function AdminPage() {
           </div>
           {rosterError && <p className="text-red-400 text-sm mt-2">{rosterError}</p>}
           {rosterMessage && <p className="text-green-400 text-sm mt-2">{rosterMessage}</p>}
+        </div>
+
+        <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <h2 className="font-semibold text-white">อัปโหลดคิวการนำเสนอ (Excel)</h2>
+            <a
+              href="/present"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-brand-accent hover:underline"
+            >
+              เปิดหน้าคิวการนำเสนอ →
+            </a>
+          </div>
+          <p className="text-white/50 text-sm mb-3">
+            ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = ชื่อกลุ่ม</span> และ{" "}
+            <span className="text-white/70">คอลัมน์ B = ลิงก์ไฟล์นำเสนอ</span> — เริ่มข้อมูลที่แถวแรกเลย
+            (ห้ามมีหัวตาราง) หน้าคิว (<code className="text-white/70">/present</code>) เปิดดูได้เลยไม่ต้อง login
+            เหมาะสำหรับใช้ในห้องเรียน
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={presentationFileInputRef}
+              type="file"
+              accept=".xlsx"
+              className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
+            />
+            <button
+              onClick={handlePresentationUpload}
+              disabled={uploadingPresentation}
+              className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+            >
+              {uploadingPresentation ? "กำลังอัปโหลด..." : "อัปโหลด"}
+            </button>
+            <button
+              onClick={handleResetQueue}
+              disabled={resettingQueue || !presentationCount}
+              className="rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+            >
+              {resettingQueue ? "กำลังรีเซ็ต..." : "รีเซ็ตคิว (นำชื่อทั้งหมดกลับมา)"}
+            </button>
+            <span className="text-white/50 text-sm">
+              {presentationCount === null
+                ? ""
+                : presentationCount === 0
+                ? "ยังไม่ได้อัปโหลดคิวการนำเสนอ"
+                : `มีกลุ่มในคิว ${presentationCount} กลุ่ม (นำเสนอไปแล้ว ${presentationUsedCount})`}
+            </span>
+          </div>
+          {presentationError && <p className="text-red-400 text-sm mt-2">{presentationError}</p>}
+          {presentationMessage && <p className="text-green-400 text-sm mt-2">{presentationMessage}</p>}
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-white/10">

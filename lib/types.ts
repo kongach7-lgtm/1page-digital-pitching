@@ -26,3 +26,12 @@ export type SiteConfig = {
   tagline: string;
   fieldLabels: [string, string, string];
 };
+
+// กลุ่มนำเสนอ: อัปโหลดจาก Excel (คอลัมน์ A = ชื่อกลุ่ม, B = ลิงก์ไฟล์นำเสนอ)
+// used = true เมื่อถูกเลือก (จากรายชื่อหรือวงล้อ) แล้ว จะไม่ถูกเลือกซ้ำอีก
+export type PresentationGroup = {
+  id: string;
+  name: string;
+  link: string;
+  used: boolean;
+};

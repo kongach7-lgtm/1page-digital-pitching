@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Entry, SiteConfig, Vote } from "./types";
+import type { Entry, PresentationGroup, SiteConfig, Vote } from "./types";
 
 type Store = {
   entries: Map<string, Entry>;
@@ -10,6 +10,7 @@ type Store = {
   config: SiteConfig;
   // เปลี่ยนค่าทุกครั้งที่ reset session — ฝั่งนักศึกษาใช้เทียบเพื่อรู้ว่าต้อง login ใหม่
   sessionId: string;
+  presentationGroups: Map<string, PresentationGroup>; // คิวการนำเสนอ อัปโหลดจาก Excel
 };
 
 export function defaultConfig(): SiteConfig {
@@ -29,6 +30,7 @@ function createStore(): Store {
     roster: new Map(),
     config: defaultConfig(),
     sessionId: randomUUID(),
+    presentationGroups: new Map(),
   };
 }
 
