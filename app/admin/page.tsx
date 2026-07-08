@@ -19,6 +19,79 @@ const DEFAULT_LABELS: [string, string, string] = [
   "ราคาขาย",
 ];
 
+type PhaseTimer = { durationSeconds: number; startedAt: number | null };
+
+function getRemaining(timer: PhaseTimer): number | null {
+  if (!timer.startedAt) return null;
+  const elapsed = (Date.now() - timer.startedAt) / 1000;
+  return Math.max(0, Math.ceil(timer.durationSeconds - elapsed));
+}
+
+function formatMMSS(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function TimerBlock({
+  label,
+  actionLabel,
+  minutes,
+  seconds,
+  onMinutesChange,
+  onSecondsChange,
+  onStart,
+  starting,
+  timer,
+}: {
+  label: string;
+  actionLabel: string;
+  minutes: number;
+  seconds: number;
+  onMinutesChange: (value: number) => void;
+  onSecondsChange: (value: number) => void;
+  onStart: () => void;
+  starting: boolean;
+  timer: PhaseTimer;
+}) {
+  const remaining = getRemaining(timer);
+  const statusText =
+    remaining === null ? "ยังไม่เริ่ม" : remaining <= 0 ? "หมดเวลาแล้ว" : `เหลือเวลา ${formatMMSS(remaining)}`;
+
+  return (
+    <div className="rounded-lg border border-white/10 p-3">
+      <h3 className="text-sm font-medium text-white/80 mb-2">{label}</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          type="number"
+          min={0}
+          className="w-16 rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-white text-center focus:outline-none focus:border-brand-accent"
+          value={minutes}
+          onChange={(e) => onMinutesChange(Math.max(0, Number(e.target.value)))}
+        />
+        <span className="text-white/50 text-sm">นาที</span>
+        <input
+          type="number"
+          min={0}
+          max={59}
+          className="w-16 rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-white text-center focus:outline-none focus:border-brand-accent"
+          value={seconds}
+          onChange={(e) => onSecondsChange(Math.min(59, Math.max(0, Number(e.target.value))))}
+        />
+        <span className="text-white/50 text-sm">วินาที</span>
+      </div>
+      <button
+        onClick={onStart}
+        disabled={starting}
+        className="w-full rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition text-sm"
+      >
+        {starting ? "กำลังเริ่ม..." : `เริ่มนับเวลา${actionLabel}`}
+      </button>
+      <p className="text-white/60 text-sm mt-2">{statusText}</p>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [passcode, setPasscode] = useState("");
   const [authorized, setAuthorized] = useState(false);
@@ -45,6 +118,17 @@ export default function AdminPage() {
   const [configError, setConfigError] = useState<string | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
 
+  const [submitTimer, setSubmitTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
+  const [voteTimer, setVoteTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
+  const [submitMinutes, setSubmitMinutes] = useState(10);
+  const [submitSeconds, setSubmitSeconds] = useState(0);
+  const [voteMinutes, setVoteMinutes] = useState(5);
+  const [voteSeconds, setVoteSeconds] = useState(0);
+  const [startingSubmitTimer, setStartingSubmitTimer] = useState(false);
+  const [startingVoteTimer, setStartingVoteTimer] = useState(false);
+  const [timerError, setTimerError] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+
   const fetchConfig = useCallback(async () => {
     const res = await fetch("/api/config");
     if (!res.ok) return;
@@ -52,6 +136,20 @@ export default function AdminPage() {
     if (data.config?.projectName) setProjectName(data.config.projectName);
     if (data.config?.tagline !== undefined) setTagline(data.config.tagline);
     if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+    if (data.config?.submitTimer) {
+      setSubmitTimer(data.config.submitTimer);
+      if (data.config.submitTimer.durationSeconds > 0) {
+        setSubmitMinutes(Math.floor(data.config.submitTimer.durationSeconds / 60));
+        setSubmitSeconds(data.config.submitTimer.durationSeconds % 60);
+      }
+    }
+    if (data.config?.voteTimer) {
+      setVoteTimer(data.config.voteTimer);
+      if (data.config.voteTimer.durationSeconds > 0) {
+        setVoteMinutes(Math.floor(data.config.voteTimer.durationSeconds / 60));
+        setVoteSeconds(data.config.voteTimer.durationSeconds % 60);
+      }
+    }
   }, []);
 
   const fetchRosterCount = useCallback(async (currentPasscode: string) => {
@@ -86,10 +184,45 @@ export default function AdminPage() {
     fetchEntries();
     fetchRosterCount(passcode);
     fetchConfig();
-    const interval = setInterval(fetchEntries, 5000);
+    const interval = setInterval(() => {
+      fetchEntries();
+      fetchConfig();
+    }, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorized, fetchEntries]);
+
+  useEffect(() => {
+    if (!authorized) return;
+    const tickInterval = setInterval(() => setTick((v) => v + 1), 1000);
+    return () => clearInterval(tickInterval);
+  }, [authorized]);
+
+  const handleStartTimer = async (which: "submit" | "vote", minutes: number, seconds: number) => {
+    const durationSeconds = minutes * 60 + seconds;
+    setTimerError(null);
+    if (which === "submit") setStartingSubmitTimer(true);
+    else setStartingVoteTimer(true);
+    try {
+      const res = await fetch("/api/timer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-passcode": passcode },
+        body: JSON.stringify({ which, durationSeconds }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTimerError(data.error ?? "เริ่มนับเวลาไม่สำเร็จ");
+        return;
+      }
+      if (data.config?.submitTimer) setSubmitTimer(data.config.submitTimer);
+      if (data.config?.voteTimer) setVoteTimer(data.config.voteTimer);
+    } catch {
+      setTimerError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      if (which === "submit") setStartingSubmitTimer(false);
+      else setStartingVoteTimer(false);
+    }
+  };
 
   const handleSaveConfig = async () => {
     setSavingConfig(true);
@@ -319,6 +452,38 @@ export default function AdminPage() {
           </button>
           {configError && <p className="text-red-400 text-sm mt-2">{configError}</p>}
           {configMessage && <p className="text-green-400 text-sm mt-2">{configMessage}</p>}
+        </div>
+
+        <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+          <h2 className="font-semibold text-white mb-1">ตั้งเวลากิจกรรม</h2>
+          <p className="text-white/50 text-sm mb-3">
+            นักศึกษาจะส่งผลงาน/โหวตได้ก็ต่อเมื่อกดเริ่มนับเวลาช่วงนั้นๆ แล้วเท่านั้น และจะถูกปิดอัตโนมัติเมื่อหมดเวลา
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <TimerBlock
+              label="ช่วงส่งผลงาน"
+              actionLabel="ส่งผลงาน"
+              minutes={submitMinutes}
+              seconds={submitSeconds}
+              onMinutesChange={setSubmitMinutes}
+              onSecondsChange={setSubmitSeconds}
+              onStart={() => handleStartTimer("submit", submitMinutes, submitSeconds)}
+              starting={startingSubmitTimer}
+              timer={submitTimer}
+            />
+            <TimerBlock
+              label="ช่วงโหวต"
+              actionLabel="โหวต"
+              minutes={voteMinutes}
+              seconds={voteSeconds}
+              onMinutesChange={setVoteMinutes}
+              onSecondsChange={setVoteSeconds}
+              onStart={() => handleStartTimer("vote", voteMinutes, voteSeconds)}
+              starting={startingVoteTimer}
+              timer={voteTimer}
+            />
+          </div>
+          {timerError && <p className="text-red-400 text-sm mt-2">{timerError}</p>}
         </div>
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">

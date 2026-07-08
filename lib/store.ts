@@ -17,7 +17,16 @@ export function defaultConfig(): SiteConfig {
     projectName: "1-Page Digital Pitching",
     tagline: "ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน",
     fieldLabels: ["ชื่อไอเดีย/แบรนด์", "ปัญหาที่แก้ไข", "ราคาขาย"],
+    submitTimer: { durationSeconds: 0, startedAt: null },
+    voteTimer: { durationSeconds: 0, startedAt: null },
   };
+}
+
+// เหลือกี่วินาที ณ ตอนนี้ (null = ยังไม่เริ่ม, 0 = หมดเวลาแล้ว)
+export function remainingSeconds(timer: { durationSeconds: number; startedAt: number | null }): number | null {
+  if (!timer.startedAt) return null;
+  const elapsed = (Date.now() - timer.startedAt) / 1000;
+  return Math.max(0, Math.ceil(timer.durationSeconds - elapsed));
 }
 
 function createStore(): Store {

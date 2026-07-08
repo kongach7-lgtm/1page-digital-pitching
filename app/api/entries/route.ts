@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { store, getVoteCounts } from "@/lib/store";
+import { store, getVoteCounts, remainingSeconds } from "@/lib/store";
 import { saveUploadedImage } from "@/lib/image";
 import type { Entry } from "@/lib/types";
 
@@ -18,6 +18,20 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const remaining = remainingSeconds(store.config.submitTimer);
+  if (remaining === null) {
+    return NextResponse.json(
+      { errors: { field1: "ยังไม่เริ่มช่วงเวลาส่งผลงาน กรุณารออาจารย์เริ่มก่อน" } },
+      { status: 403 }
+    );
+  }
+  if (remaining <= 0) {
+    return NextResponse.json(
+      { errors: { field1: "หมดเวลาส่งผลงานแล้ว" } },
+      { status: 403 }
+    );
+  }
+
   const formData = await request.formData();
 
   const name = String(formData.get("name") ?? "").trim();

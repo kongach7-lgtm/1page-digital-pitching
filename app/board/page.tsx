@@ -23,6 +23,20 @@ const DEFAULT_LABELS: [string, string, string] = [
   "ราคาขาย",
 ];
 
+type PhaseTimer = { durationSeconds: number; startedAt: number | null };
+
+function getRemaining(timer: PhaseTimer): number | null {
+  if (!timer.startedAt) return null;
+  const elapsed = (Date.now() - timer.startedAt) / 1000;
+  return Math.max(0, Math.ceil(timer.durationSeconds - elapsed));
+}
+
+function formatMMSS(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 function getVoterFingerprint(): string {
   const key = "pitching_voter_token";
   let token = localStorage.getItem(key);
@@ -43,15 +57,28 @@ export default function BoardPage() {
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [voteTimer, setVoteTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.config?.projectName) setProjectName(data.config.projectName);
-        if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
-      })
-      .catch(() => {});
+    const fetchConfig = () => {
+      fetch("/api/config")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.config?.projectName) setProjectName(data.config.projectName);
+          if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+          if (data.config?.voteTimer) setVoteTimer(data.config.voteTimer);
+        })
+        .catch(() => {});
+    };
+    fetchConfig();
+    const interval = setInterval(fetchConfig, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const tickInterval = setInterval(() => setTick((v) => v + 1), 1000);
+    return () => clearInterval(tickInterval);
   }, []);
 
   const fetchEntries = useCallback(async () => {
@@ -104,8 +131,11 @@ export default function BoardPage() {
     return () => clearInterval(interval);
   }, [router]);
 
+  const remainingVoteSeconds = getRemaining(voteTimer);
+  const votingActive = remainingVoteSeconds !== null && remainingVoteSeconds > 0;
+
   const handleVote = async (voterStudentId: string): Promise<string | null> => {
-    if (!votingEntryId) return null;
+    if (!votingEntryId || !votingActive) return null;
 
     const identifiedStudentId = sessionStorage.getItem("pitching_studentId");
     if (identifiedStudentId && voterStudentId !== identifiedStudentId) {
@@ -138,6 +168,16 @@ export default function BoardPage() {
 
   return (
     <StudentBackground>
+      <div className="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm border border-white/60 rounded-xl px-4 py-2 shadow-lg text-center">
+        <p className="text-xs text-slate-500 mb-0.5">เวลาโหวต</p>
+        <p className="text-2xl font-bold text-fuchsia-600 tabular-nums">
+          {remainingVoteSeconds === null ? "--:--" : formatMMSS(remainingVoteSeconds)}
+        </p>
+        {remainingVoteSeconds === null && <p className="text-xs text-slate-400 mt-0.5">รอเริ่มโหวต</p>}
+        {remainingVoteSeconds !== null && remainingVoteSeconds <= 0 && (
+          <p className="text-xs text-red-500 font-medium mt-0.5">หมดเวลาโหวตแล้ว</p>
+        )}
+      </div>
       <main className="px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <header className="text-center mb-6">
@@ -162,7 +202,7 @@ export default function BoardPage() {
                 key={entry.id}
                 entry={entry}
                 rank={index + 1}
-                disabled={hasVoted}
+                disabled={hasVoted || !votingActive}
                 onVote={(entryId) => setVotingEntryId(entryId)}
                 fieldLabels={fieldLabels}
                 currentStudentId={currentStudentId}

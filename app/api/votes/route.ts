@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { store } from "@/lib/store";
+import { store, remainingSeconds } from "@/lib/store";
 import type { Vote } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
+  const remaining = remainingSeconds(store.config.voteTimer);
+  if (remaining === null) {
+    return NextResponse.json({ error: "ยังไม่เริ่มช่วงเวลาโหวต กรุณารออาจารย์เริ่มก่อน" }, { status: 403 });
+  }
+  if (remaining <= 0) {
+    return NextResponse.json({ error: "หมดเวลาโหวตแล้ว" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   const entryId = String(body?.entryId ?? "").trim();
   const voterStudentId = String(body?.voterStudentId ?? "").trim();

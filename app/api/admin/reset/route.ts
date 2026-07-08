@@ -21,6 +21,9 @@ export async function DELETE(request: NextRequest) {
   // เปลี่ยน sessionId ทุกครั้งที่ reset — หน้า submit/board ของนักศึกษาที่เปิดค้างไว้
   // จะตรวจพบว่าไม่ตรงกับตอน login แล้วเด้งกลับไปหน้าแรกให้ล็อกอินใหม่
   store.sessionId = randomUUID();
+  // หยุดนาฬิกาทั้งสองช่วง (คงเวลาที่เคยตั้งไว้ไว้ให้) เพื่อให้อาจารย์กดเริ่มใหม่ได้สำหรับรอบถัดไป
+  store.config.submitTimer.startedAt = null;
+  store.config.voteTimer.startedAt = null;
 
   const uploadDir = path.join(process.cwd(), "uploads");
   try {

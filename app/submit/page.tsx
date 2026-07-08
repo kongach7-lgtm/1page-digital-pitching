@@ -10,6 +10,20 @@ const DEFAULT_LABELS: [string, string, string] = [
   "ราคาขาย",
 ];
 
+type PhaseTimer = { durationSeconds: number; startedAt: number | null };
+
+function getRemaining(timer: PhaseTimer): number | null {
+  if (!timer.startedAt) return null;
+  const elapsed = (Date.now() - timer.startedAt) / 1000;
+  return Math.max(0, Math.ceil(timer.durationSeconds - elapsed));
+}
+
+function formatMMSS(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 export default function SubmitPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -23,6 +37,8 @@ export default function SubmitPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitTimer, setSubmitTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
+  const [, setTick] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,13 +53,24 @@ export default function SubmitPage() {
   }, [router]);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.config?.projectName) setProjectName(data.config.projectName);
-        if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
-      })
-      .catch(() => {});
+    const fetchConfig = () => {
+      fetch("/api/config")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.config?.projectName) setProjectName(data.config.projectName);
+          if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+          if (data.config?.submitTimer) setSubmitTimer(data.config.submitTimer);
+        })
+        .catch(() => {});
+    };
+    fetchConfig();
+    const interval = setInterval(fetchConfig, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const tickInterval = setInterval(() => setTick((v) => v + 1), 1000);
+    return () => clearInterval(tickInterval);
   }, []);
 
   useEffect(() => {
@@ -83,7 +110,11 @@ export default function SubmitPage() {
     }
   };
 
+  const remainingSubmitSeconds = getRemaining(submitTimer);
+  const submitTimerActive = remainingSubmitSeconds !== null && remainingSubmitSeconds > 0;
+
   const handleSubmit = async () => {
+    if (!submitTimerActive) return;
     const nextErrors: Record<string, string> = {};
     if (!field1.trim()) nextErrors.field1 = `กรุณากรอก${fieldLabels[0]}`;
     if (!imageFile) nextErrors.image = "กรุณาแนบรูปถ่ายผลงาน";
@@ -134,12 +165,21 @@ export default function SubmitPage() {
             </div>
           )}
 
+          {!submitTimerActive && (
+            <div className="mb-4 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm px-3 py-2 text-center">
+              {remainingSubmitSeconds === null
+                ? "ยังไม่เริ่มช่วงเวลาส่งผลงาน กรุณารออาจารย์เริ่ม"
+                : "หมดเวลาส่งผลงานแล้ว"}
+            </div>
+          )}
+
           <label className="block mb-4">
             <span className="text-sm text-slate-600">{fieldLabels[0]} *</span>
             <input
-              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               value={field1}
               onChange={(e) => setField1(e.target.value)}
+              disabled={!submitTimerActive}
             />
             {errors.field1 && <p className="text-red-500 text-sm mt-1">{errors.field1}</p>}
           </label>
@@ -152,7 +192,8 @@ export default function SubmitPage() {
               accept="image/*"
               capture="environment"
               onChange={handleFileChange}
-              className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
+              className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium disabled:file:bg-slate-300"
+              disabled={!submitTimerActive}
             />
             <p className="text-slate-400 text-xs mt-1">ขนาดไฟล์ไม่เกิน 5MB</p>
             {imagePreview && (
@@ -169,29 +210,38 @@ export default function SubmitPage() {
           <label className="block mb-4">
             <span className="text-sm text-slate-600">{fieldLabels[1]}</span>
             <textarea
-              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               rows={3}
               value={field2}
               onChange={(e) => setField2(e.target.value)}
+              disabled={!submitTimerActive}
             />
           </label>
 
           <label className="block mb-6">
             <span className="text-sm text-slate-600">{fieldLabels[2]}</span>
             <input
-              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
+              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               value={field3}
               onChange={(e) => setField3(e.target.value)}
+              disabled={!submitTimerActive}
             />
           </label>
 
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 transition"
-          >
-            {submitting ? "กำลังส่ง..." : "ส่งผลงาน"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !submitTimerActive}
+              className="flex-1 rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 transition"
+            >
+              {submitting ? "กำลังส่ง..." : "ส่งผลงาน"}
+            </button>
+            {submitTimerActive && (
+              <span className="text-brand-accent font-semibold text-lg tabular-nums whitespace-nowrap">
+                {formatMMSS(remainingSubmitSeconds as number)}
+              </span>
+            )}
+          </div>
         </div>
       </main>
     </StudentBackground>

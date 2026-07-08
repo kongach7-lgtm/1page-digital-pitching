@@ -38,6 +38,7 @@ export async function PUT(request: NextRequest) {
   }
 
   store.config = {
+    ...store.config,
     projectName,
     tagline,
     fieldLabels: fieldLabels as [string, string, string],
