@@ -66,7 +66,10 @@ export async function GET(request: NextRequest) {
       let imageBuffer: Buffer;
       try {
         imageBuffer = await sharp(imagePath)
-          .resize(CELL_SIZE, CELL_SIZE, { fit: "cover" })
+          .resize(CELL_SIZE, CELL_SIZE, {
+            fit: "contain",
+            background: { r: 241, g: 245, b: 249 },
+          })
           .jpeg()
           .toBuffer();
       } catch {
