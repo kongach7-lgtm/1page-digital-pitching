@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EntryCard from "@/components/EntryCard";
 import VoteConfirmModal from "@/components/VoteConfirmModal";
@@ -161,6 +161,16 @@ export default function BoardPage() {
   const remainingSubmitSeconds = getRemaining(submitTimer);
   const remainingVoteSeconds = getRemaining(voteTimer);
   const votingActive = remainingVoteSeconds !== null && remainingVoteSeconds > 0;
+  const votingEnded = remainingVoteSeconds !== null && remainingVoteSeconds <= 0;
+
+  const redirectedToWinnersRef = useRef(false);
+  useEffect(() => {
+    // พอหมดเวลาโหวต พานักศึกษาไปหน้าผลรางวัลทันทีให้เห็นผลเลย
+    if (votingEnded && !redirectedToWinnersRef.current) {
+      redirectedToWinnersRef.current = true;
+      router.push("/winners");
+    }
+  }, [votingEnded, router]);
 
   const handleVote = async (voterStudentId: string): Promise<string | null> => {
     if (!votingEntryId || !votingActive) return null;
