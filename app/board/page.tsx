@@ -47,6 +47,31 @@ function getVoterFingerprint(): string {
   return token;
 }
 
+function TimerClock({
+  label,
+  remaining,
+  notStartedText,
+  endedText,
+}: {
+  label: string;
+  remaining: number | null;
+  notStartedText: string;
+  endedText: string;
+}) {
+  return (
+    <div className="bg-white/90 backdrop-blur-sm border border-white/60 rounded-xl px-4 py-2 shadow-lg text-center">
+      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+      <p className="text-2xl font-bold text-fuchsia-600 tabular-nums">
+        {remaining === null ? "--:--" : formatMMSS(remaining)}
+      </p>
+      {remaining === null && <p className="text-xs text-slate-400 mt-0.5">{notStartedText}</p>}
+      {remaining !== null && remaining <= 0 && (
+        <p className="text-xs text-red-500 font-medium mt-0.5">{endedText}</p>
+      )}
+    </div>
+  );
+}
+
 export default function BoardPage() {
   const router = useRouter();
   const [entries, setEntries] = useState<EntryWithVotes[]>([]);
@@ -57,6 +82,7 @@ export default function BoardPage() {
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [submitTimer, setSubmitTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
   const [voteTimer, setVoteTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
   const [, setTick] = useState(0);
 
@@ -67,6 +93,7 @@ export default function BoardPage() {
         .then((data) => {
           if (data.config?.projectName) setProjectName(data.config.projectName);
           if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+          if (data.config?.submitTimer) setSubmitTimer(data.config.submitTimer);
           if (data.config?.voteTimer) setVoteTimer(data.config.voteTimer);
         })
         .catch(() => {});
@@ -131,6 +158,7 @@ export default function BoardPage() {
     return () => clearInterval(interval);
   }, [router]);
 
+  const remainingSubmitSeconds = getRemaining(submitTimer);
   const remainingVoteSeconds = getRemaining(voteTimer);
   const votingActive = remainingVoteSeconds !== null && remainingVoteSeconds > 0;
 
@@ -168,15 +196,19 @@ export default function BoardPage() {
 
   return (
     <StudentBackground>
-      <div className="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm border border-white/60 rounded-xl px-4 py-2 shadow-lg text-center">
-        <p className="text-xs text-slate-500 mb-0.5">เวลาโหวต</p>
-        <p className="text-2xl font-bold text-fuchsia-600 tabular-nums">
-          {remainingVoteSeconds === null ? "--:--" : formatMMSS(remainingVoteSeconds)}
-        </p>
-        {remainingVoteSeconds === null && <p className="text-xs text-slate-400 mt-0.5">รอเริ่มโหวต</p>}
-        {remainingVoteSeconds !== null && remainingVoteSeconds <= 0 && (
-          <p className="text-xs text-red-500 font-medium mt-0.5">หมดเวลาโหวตแล้ว</p>
-        )}
+      <div className="fixed top-4 right-4 z-40 flex gap-2">
+        <TimerClock
+          label="เวลาส่งผลงาน"
+          remaining={remainingSubmitSeconds}
+          notStartedText="รอเริ่มส่งผลงาน"
+          endedText="หมดเวลาส่งผลงานแล้ว"
+        />
+        <TimerClock
+          label="เวลาโหวต"
+          remaining={remainingVoteSeconds}
+          notStartedText="รอเริ่มโหวต"
+          endedText="หมดเวลาโหวตแล้ว"
+        />
       </div>
       <main className="px-4 py-8">
         <div className="max-w-6xl mx-auto">

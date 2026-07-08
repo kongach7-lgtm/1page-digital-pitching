@@ -101,6 +101,7 @@ export default function AdminPage() {
   const [entries, setEntries] = useState<EntryWithVotes[]>([]);
   const [totalVotes, setTotalVotes] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [exportingPhotos, setExportingPhotos] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -298,6 +299,32 @@ export default function AdminPage() {
     }
   };
 
+  const handleExportPhotos = async () => {
+    setExportingPhotos(true);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/admin/photos", {
+        headers: { "x-admin-passcode": passcode },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error ?? "ดาวน์โหลดภาพไม่สำเร็จ");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pitching-photos-${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setActionError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setExportingPhotos(false);
+    }
+  };
+
   const handleRosterUpload = async () => {
     const file = rosterFileInputRef.current?.files?.[0];
     if (!file) {
@@ -394,6 +421,13 @@ export default function AdminPage() {
               className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
             >
               {exporting ? "กำลัง Export..." : "Export Excel"}
+            </button>
+            <button
+              onClick={handleExportPhotos}
+              disabled={exportingPhotos}
+              className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+            >
+              {exportingPhotos ? "กำลังสร้างภาพ..." : "ดาวน์โหลดภาพผลงาน"}
             </button>
             <button
               onClick={() => setConfirmingReset(true)}
