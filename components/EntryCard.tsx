@@ -42,7 +42,7 @@ export default function EntryCard({
       )}
       <div className="aspect-[4/3] bg-slate-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={entry.imageUrl} alt={entry.field1} className="w-full h-full object-cover" />
+        <img src={entry.imageUrl} alt={entry.field1} className="w-full h-full object-contain" />
       </div>
       <div className="p-3 flex flex-col gap-1 flex-1">
         <h3 className="font-semibold text-slate-800 truncate">{entry.field1}</h3>
