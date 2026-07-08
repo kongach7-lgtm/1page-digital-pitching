@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import StudentBackground from "@/components/StudentBackground";
 
 type EntryWithVotes = {
@@ -15,6 +16,7 @@ type EntryWithVotes = {
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function WinnersPage() {
+  const router = useRouter();
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [entries, setEntries] = useState<EntryWithVotes[]>([]);
   const [awardCount, setAwardCount] = useState(3);
@@ -27,7 +29,11 @@ export default function WinnersPage() {
     ]);
     const entriesData = await entriesRes.json();
     const configData = await configRes.json();
-    setEntries(entriesData.entries ?? []);
+    // API เรียงตามเวลาส่งเข้ามาให้กระดานผลงานตำแหน่งคงที่ — หน้านี้ต้องเรียงตามโหวตเอง
+    const sorted = (entriesData.entries ?? [])
+      .slice()
+      .sort((a: EntryWithVotes, b: EntryWithVotes) => b.voteCount - a.voteCount);
+    setEntries(sorted);
     if (configData.config?.projectName) setProjectName(configData.config.projectName);
     if (configData.config?.awardCount !== undefined) setAwardCount(configData.config.awardCount);
     setLoaded(true);
@@ -38,6 +44,32 @@ export default function WinnersPage() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  useEffect(() => {
+    // ถ้าอาจารย์กด Reset Session ระหว่างที่นักศึกษาที่ login แล้วค้างหน้านี้อยู่
+    // ให้เด้งกลับไปหน้าแรกและล้าง session ในเครื่อง เพื่อบังคับให้ login ใหม่เสมอ
+    if (!sessionStorage.getItem("pitching_studentId")) return;
+
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        const expected = sessionStorage.getItem("pitching_sessionId");
+        if (expected && data.sessionId && data.sessionId !== expected) {
+          sessionStorage.removeItem("pitching_name");
+          sessionStorage.removeItem("pitching_studentId");
+          sessionStorage.removeItem("pitching_sessionId");
+          sessionStorage.removeItem("pitching_voted_studentId");
+          localStorage.removeItem("pitching_voter_token");
+          router.replace("/");
+        }
+      } catch {
+        // เชื่อมต่อไม่ได้ รอ poll รอบถัดไป
+      }
+    };
+    const interval = setInterval(checkSession, 5000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const winners = awardCount > 0 ? entries.slice(0, awardCount) : entries;
 

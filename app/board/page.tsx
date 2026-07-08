@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EntryCard from "@/components/EntryCard";
 import VoteConfirmModal from "@/components/VoteConfirmModal";
@@ -158,6 +158,17 @@ export default function BoardPage() {
     return () => clearInterval(interval);
   }, [router]);
 
+  // ตำแหน่งการ์ด (entries) คงที่ตามลำดับส่งเข้ามาเสมอ — อันดับ/ป้าย 🔥 ต้องคำนวณ
+  // จากคะแนนโหวตแยกต่างหาก ไม่ใช่ตำแหน่งในกริด ไม่งั้นการ์ดจะสลับที่ตอนมีคนโหวตเพิ่ม
+  const voteRankById = useMemo(() => {
+    // Array.prototype.sort เป็น stable sort ตาม spec ทำให้คะแนนเท่ากันยังคงเรียง
+    // ตามลำดับเดิม (เวลาส่งเข้ามา) ไว้ ไม่ต้องระบุ tiebreaker เพิ่ม
+    const ranked = [...entries].sort((a, b) => b.voteCount - a.voteCount);
+    const map = new Map<string, number>();
+    ranked.forEach((entry, index) => map.set(entry.id, index + 1));
+    return map;
+  }, [entries]);
+
   const remainingSubmitSeconds = getRemaining(submitTimer);
   const remainingVoteSeconds = getRemaining(voteTimer);
   const votingActive = remainingVoteSeconds !== null && remainingVoteSeconds > 0;
@@ -239,11 +250,11 @@ export default function BoardPage() {
           )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {entries.map((entry, index) => (
+            {entries.map((entry) => (
               <EntryCard
                 key={entry.id}
                 entry={entry}
-                rank={index + 1}
+                rank={voteRankById.get(entry.id) ?? 1}
                 disabled={hasVoted || !votingActive}
                 onVote={(entryId) => setVotingEntryId(entryId)}
                 fieldLabels={fieldLabels}

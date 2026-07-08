@@ -6,9 +6,12 @@ import type { Entry } from "@/lib/types";
 
 export async function GET() {
   const voteCounts = getVoteCounts();
+  // เรียงตามเวลาที่ส่งเข้ามา (ไม่ใช่คะแนนโหวต) เพื่อให้ตำแหน่งการ์ดบนกระดานผลงาน
+  // คงที่เสมอ ไม่กระโดดสลับตำแหน่งตอนมีคนโหวตเพิ่ม — หน้าที่ต้องการเรียงตามคะแนน
+  // (เช่น ตาราง admin, หน้าผลรางวัล) ให้เรียงเองฝั่ง client แทน
   const entries = Array.from(store.entries.values())
     .map((entry) => ({ ...entry, voteCount: voteCounts.get(entry.id) ?? 0 }))
-    .sort((a, b) => b.voteCount - a.voteCount || a.createdAt - b.createdAt);
+    .sort((a, b) => a.createdAt - b.createdAt);
 
   return NextResponse.json({
     entries,
