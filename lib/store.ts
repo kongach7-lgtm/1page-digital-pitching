@@ -19,6 +19,7 @@ export function defaultConfig(): SiteConfig {
     fieldLabels: ["ชื่อไอเดีย/แบรนด์", "ปัญหาที่แก้ไข", "ราคาขาย"],
     submitTimer: { durationSeconds: 0, startedAt: null },
     voteTimer: { durationSeconds: 0, startedAt: null },
+    awardCount: 3,
   };
 }
 

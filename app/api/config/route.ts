@@ -26,11 +26,15 @@ export async function PUT(request: NextRequest) {
   const fieldLabels = Array.isArray(body?.fieldLabels)
     ? body.fieldLabels.map((label: unknown) => String(label ?? "").trim())
     : [];
+  const awardCount = Number(body?.awardCount);
 
   const errors: Record<string, string> = {};
   if (!projectName) errors.projectName = "กรุณากรอกชื่อโปรเจกต์";
   if (fieldLabels.length !== 3 || fieldLabels.some((label: string) => !label)) {
     errors.fieldLabels = "กรุณากรอกหัวข้อให้ครบทั้ง 3 ช่อง";
+  }
+  if (!Number.isFinite(awardCount) || awardCount < 0 || !Number.isInteger(awardCount)) {
+    errors.awardCount = "จำนวนผลงานที่ได้รับรางวัลต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -42,6 +46,7 @@ export async function PUT(request: NextRequest) {
     projectName,
     tagline,
     fieldLabels: fieldLabels as [string, string, string],
+    awardCount,
   };
 
   return NextResponse.json({ config: store.config });

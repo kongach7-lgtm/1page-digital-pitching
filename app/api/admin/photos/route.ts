@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFileSync } from "fs";
 import path from "path";
 import sharp from "sharp";
 import JSZip from "jszip";
@@ -11,6 +12,17 @@ function isAuthorized(request: NextRequest): boolean {
     request.headers.get("x-admin-passcode") ?? request.nextUrl.searchParams.get("passcode");
   return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
 }
+
+// เซิร์ฟเวอร์ (เช่น Railway) มักไม่มีฟอนต์ไทยติดตั้งไว้เลย ทำให้ข้อความไทยที่ librsvg
+// เรนเดอร์ผ่าน sharp ออกมาเป็นกล่องว่าง/อ่านไม่ออก — ฝัง Kanit (Google Fonts, ใบอนุญาต OFL)
+// เป็น base64 ไว้ใน SVG ตรงๆ แทน ทำให้เรนเดอร์ถูกต้องเหมือนกันทุก environment
+const FONT_DIR = path.join(process.cwd(), "assets", "fonts");
+const KANIT_REGULAR_BASE64 = readFileSync(path.join(FONT_DIR, "Kanit-Regular.ttf")).toString("base64");
+const KANIT_BOLD_BASE64 = readFileSync(path.join(FONT_DIR, "Kanit-Bold.ttf")).toString("base64");
+const FONT_FACE_CSS = `
+  @font-face { font-family: 'Kanit'; font-weight: 400; src: url(data:font/ttf;base64,${KANIT_REGULAR_BASE64}) format('truetype'); }
+  @font-face { font-family: 'Kanit'; font-weight: 700; src: url(data:font/ttf;base64,${KANIT_BOLD_BASE64}) format('truetype'); }
+`;
 
 const PER_PAGE = 10;
 const COLS = 2;
@@ -84,9 +96,10 @@ export async function GET(request: NextRequest) {
 
       const rank = page * PER_PAGE + i + 1;
       const captionSvg = `<svg width="${CELL_SIZE}" height="${CAPTION_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+        <style>${FONT_FACE_CSS}</style>
         <rect width="100%" height="100%" fill="white" />
-        <text x="50%" y="28" font-size="20" font-family="sans-serif" font-weight="bold" fill="#1e293b" text-anchor="middle">#${rank} ${escapeXml(truncate(entry.field1, 18))}</text>
-        <text x="50%" y="52" font-size="16" font-family="sans-serif" fill="#64748b" text-anchor="middle">${escapeXml(truncate(entry.name, 22))} · ${entry.voteCount} โหวต</text>
+        <text x="50%" y="28" font-size="20" font-family="Kanit" font-weight="700" fill="#1e293b" text-anchor="middle">#${rank} ${escapeXml(truncate(entry.field1, 18))}</text>
+        <text x="50%" y="52" font-size="16" font-family="Kanit" font-weight="400" fill="#64748b" text-anchor="middle">${escapeXml(truncate(entry.name, 22))} · ${entry.voteCount} โหวต</text>
       </svg>`;
       const captionBuffer = await sharp(Buffer.from(captionSvg)).png().toBuffer();
       composites.push({ input: captionBuffer, left: x, top: y + CELL_SIZE });

@@ -33,4 +33,6 @@ export type SiteConfig = {
   fieldLabels: [string, string, string];
   submitTimer: PhaseTimer;
   voteTimer: PhaseTimer;
+  // จำนวนผลงานที่ได้รับรางวัลจากคะแนนโหวต ใช้กำหนดว่า dashboard ผู้ชนะจะแสดงกี่อันดับ
+  awardCount: number;
 };

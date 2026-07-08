@@ -115,6 +115,7 @@ export default function AdminPage() {
   const [projectName, setProjectName] = useState("");
   const [tagline, setTagline] = useState("");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
+  const [awardCount, setAwardCount] = useState(3);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
@@ -137,6 +138,7 @@ export default function AdminPage() {
     if (data.config?.projectName) setProjectName(data.config.projectName);
     if (data.config?.tagline !== undefined) setTagline(data.config.tagline);
     if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
+    if (data.config?.awardCount !== undefined) setAwardCount(data.config.awardCount);
     if (data.config?.submitTimer) {
       setSubmitTimer(data.config.submitTimer);
       if (data.config.submitTimer.durationSeconds > 0) {
@@ -233,11 +235,13 @@ export default function AdminPage() {
       const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json", "x-admin-passcode": passcode },
-        body: JSON.stringify({ projectName, tagline, fieldLabels }),
+        body: JSON.stringify({ projectName, tagline, fieldLabels, awardCount }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setConfigError(data.errors?.projectName ?? data.errors?.fieldLabels ?? "บันทึกไม่สำเร็จ");
+        setConfigError(
+          data.errors?.projectName ?? data.errors?.fieldLabels ?? data.errors?.awardCount ?? "บันทึกไม่สำเร็จ"
+        );
         return;
       }
       setConfigMessage("บันทึกการตั้งค่าเรียบร้อย");
@@ -429,6 +433,14 @@ export default function AdminPage() {
             >
               {exportingPhotos ? "กำลังสร้างภาพ..." : "ดาวน์โหลดภาพผลงาน"}
             </button>
+            <a
+              href="/winners"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-brand-badge hover:bg-yellow-400 text-brand-bg font-medium px-4 py-2 transition inline-flex items-center"
+            >
+              ดูผลรางวัล
+            </a>
             <button
               onClick={() => setConfirmingReset(true)}
               className="rounded-lg bg-red-600/80 hover:bg-red-600 text-white font-medium px-4 py-2 transition"
@@ -477,6 +489,17 @@ export default function AdminPage() {
               </label>
             ))}
           </div>
+          <label className="block mb-3 max-w-xs">
+            <span className="text-sm text-white/80">จำนวนผลงานที่ได้รับรางวัลจากการโหวต</span>
+            <input
+              type="number"
+              min={0}
+              className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
+              value={awardCount}
+              onChange={(e) => setAwardCount(Math.max(0, Number(e.target.value)))}
+            />
+            <span className="text-white/40 text-xs">ใช้กำหนดจำนวนอันดับที่แสดงในหน้า "ดูผลรางวัล" (0 = แสดงทั้งหมด)</span>
+          </label>
           <button
             onClick={handleSaveConfig}
             disabled={savingConfig}

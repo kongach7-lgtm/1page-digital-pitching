@@ -27,10 +27,31 @@ export default function HomePage() {
   const handleNext = async () => {
     const nextErrors: typeof errors = {};
     if (!name.trim()) nextErrors.name = "กรุณากรอกชื่อ-นามสกุล";
-    if (!studentId.trim()) nextErrors.studentId = "กรุณากรอกรหัสนักศึกษา";
+    const isAdminPreview = name.trim().toLowerCase() === "admin";
+    if (!isAdminPreview && !studentId.trim()) nextErrors.studentId = "กรุณากรอกรหัสนักศึกษา";
     setErrors(nextErrors);
     setAlreadySubmitted(false);
     if (Object.keys(nextErrors).length > 0) return;
+
+    // ทางลัดสำหรับอาจารย์: พิมพ์ "admin" ในช่องชื่อ ไม่ต้องกรอกรหัสนักศึกษา
+    // เข้าสู่ระบบนักศึกษาได้เลยเพื่อทดสอบ/พรีวิวหน้าจอนักศึกษา
+    if (isAdminPreview) {
+      setChecking(true);
+      try {
+        const previewStudentId = `admin-${Math.random().toString(36).slice(2, 8)}`;
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        sessionStorage.setItem("pitching_name", name.trim());
+        sessionStorage.setItem("pitching_studentId", previewStudentId);
+        if (data.sessionId) sessionStorage.setItem("pitching_sessionId", data.sessionId);
+        router.push("/submit");
+      } catch {
+        setErrors({ studentId: "เชื่อมต่อไม่ได้ กรุณาลองใหม่" });
+      } finally {
+        setChecking(false);
+      }
+      return;
+    }
 
     setChecking(true);
     try {
