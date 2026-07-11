@@ -31,6 +31,22 @@
       "cwd": "presentation-queue",
       "port": 3003,
       "autoPort": true
+    },
+    {
+      "name": "assignment-hub",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "assignment-hub",
+      "port": 3004,
+      "autoPort": true
+    },
+    {
+      "name": "compare-hub",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "compare-hub",
+      "port": 3005,
+      "autoPort": true
     }
   ]
 }
