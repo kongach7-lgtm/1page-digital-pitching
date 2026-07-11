@@ -469,7 +469,8 @@ export default function AdminPage() {
         <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
           <h1 className="text-xl font-bold text-brand-badge mb-4 text-center">Login (รหัสอาจารย์)</h1>
           <input
-            type="password"
+            type="text"
+            autoComplete="off"
             className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
