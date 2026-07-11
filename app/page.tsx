@@ -6,19 +6,21 @@ import StudentBackground from "@/components/StudentBackground";
 
 const ID_CHECK_DEBOUNCE_MS = 350;
 
+type IdStatus = "idle" | "checking" | "valid" | "invalid" | "submitted" | "instructor";
+
 export default function HomePage() {
   const router = useRouter();
-  const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [errors, setErrors] = useState<{ name?: string; studentId?: string }>({});
+  const [resolvedName, setResolvedName] = useState("");
+  const [errors, setErrors] = useState<{ studentId?: string }>({});
   const [checking, setChecking] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [tagline, setTagline] = useState("ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน");
 
-  // ผลตรวจสอบรหัสนักศึกษาแบบ live ระหว่างพิมพ์ (debounce) แยกจาก errors.studentId
-  // ซึ่งใช้เฉพาะตอนกด "ถัดไป" แล้วพบว่าช่องว่างเปล่า
-  const [idStatus, setIdStatus] = useState<"idle" | "checking" | "valid" | "invalid" | "submitted">("idle");
+  // ผลตรวจสอบรหัสแบบ live ระหว่างพิมพ์ (debounce) — เช็ค 2 ชั้น: รหัสอาจารย์ (setup page)
+  // ก่อน แล้วค่อยเช็ครหัสนักศึกษาในรายชื่อที่อาจารย์อัปโหลดไว้
+  const [idStatus, setIdStatus] = useState<IdStatus>("idle");
   const idCheckSeq = useRef(0);
 
   useEffect(() => {
@@ -33,22 +35,40 @@ export default function HomePage() {
 
   useEffect(() => {
     const id = studentId.trim();
-    const isAdminPreview = name.trim().toLowerCase() === "admin";
-    if (isAdminPreview || !id) {
+    if (!id) {
       setIdStatus("idle");
+      setResolvedName("");
       return;
     }
     setIdStatus("checking");
     const seq = ++idCheckSeq.current;
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/entries/check?studentId=${encodeURIComponent(id)}`, { cache: "no-store" });
+        // 1) รหัสนี้เป็นรหัสอาจารย์ (ใช้ล็อกอิน Setup Page) หรือไม่ — ให้อาจารย์เข้าฝั่งนักศึกษา
+        // เพื่อพรีวิวหน้าจอได้ด้วยรหัสเดียวกัน
+        const codeRes = await fetch(`/api/admin/check-code?code=${encodeURIComponent(id)}`, {
+          cache: "no-store",
+        });
+        const codeData = await codeRes.json();
+        if (idCheckSeq.current !== seq) return;
+        if (codeData.role) {
+          setResolvedName(codeData.name ?? "อาจารย์ผู้ดูแลระบบ");
+          setIdStatus("instructor");
+          return;
+        }
+
+        // 2) ไม่ใช่รหัสอาจารย์ ให้ตรวจกับรายชื่อนักศึกษาที่อาจารย์อัปโหลดไว้
+        const res = await fetch(`/api/entries/check?studentId=${encodeURIComponent(id)}`, {
+          cache: "no-store",
+        });
         const data = await res.json();
         if (idCheckSeq.current !== seq) return; // พิมพ์ต่อไปแล้ว ผลนี้เก่าไม่ใช้
         if (!data.rosterValid) {
           setIdStatus("invalid");
+          setResolvedName("");
           return;
         }
+        setResolvedName(data.name ?? "");
         if (data.exists) {
           setIdStatus("submitted");
           return;
@@ -60,26 +80,25 @@ export default function HomePage() {
       }
     }, ID_CHECK_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [studentId, name]);
+  }, [studentId]);
 
   const handleNext = async () => {
-    const nextErrors: typeof errors = {};
-    if (!name.trim()) nextErrors.name = "กรุณากรอกชื่อ-นามสกุล";
-    const isAdminPreview = name.trim().toLowerCase() === "admin";
-    if (!isAdminPreview && !studentId.trim()) nextErrors.studentId = "กรุณากรอกรหัสนักศึกษา";
-    setErrors(nextErrors);
+    const id = studentId.trim();
+    if (!id) {
+      setErrors({ studentId: "กรุณากรอกรหัสนักศึกษา" });
+      return;
+    }
+    setErrors({});
     setAlreadySubmitted(false);
-    if (Object.keys(nextErrors).length > 0) return;
 
-    // ทางลัดสำหรับอาจารย์: พิมพ์ "admin" ในช่องชื่อ ไม่ต้องกรอกรหัสนักศึกษา
-    // เข้าสู่ระบบนักศึกษาได้เลยเพื่อทดสอบ/พรีวิวหน้าจอนักศึกษา
-    if (isAdminPreview) {
+    // รหัสอาจารย์: เข้าฝั่งนักศึกษาได้เพื่อพรีวิว ไม่ต้องตรวจรายชื่อ/สถานะส่งงาน
+    if (idStatus === "instructor") {
       setChecking(true);
       try {
         const previewStudentId = `admin-${Math.random().toString(36).slice(2, 8)}`;
         const res = await fetch("/api/session", { cache: "no-store" });
         const data = await res.json();
-        sessionStorage.setItem("pitching_name", name.trim());
+        sessionStorage.setItem("pitching_name", resolvedName || "อาจารย์ผู้ดูแลระบบ");
         sessionStorage.setItem("pitching_studentId", previewStudentId);
         if (data.sessionId) sessionStorage.setItem("pitching_sessionId", data.sessionId);
         router.push("/submit");
@@ -100,12 +119,16 @@ export default function HomePage() {
       setAlreadySubmitted(true);
       return;
     }
+    if (idStatus !== "valid") {
+      setErrors({ studentId: "กรุณารอผลการตรวจสอบรหัสสักครู่" });
+      return;
+    }
 
     setChecking(true);
     try {
-      const res = await fetch(
-        `/api/entries/check?studentId=${encodeURIComponent(studentId.trim())}`
-      );
+      const res = await fetch(`/api/entries/check?studentId=${encodeURIComponent(id)}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (!data.rosterValid) {
         setErrors({ studentId: "ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบและกรอกรหัสนักศึกษาให้ถูกต้อง" });
@@ -115,8 +138,8 @@ export default function HomePage() {
         setAlreadySubmitted(true);
         return;
       }
-      sessionStorage.setItem("pitching_name", name.trim());
-      sessionStorage.setItem("pitching_studentId", studentId.trim());
+      sessionStorage.setItem("pitching_name", data.name || id);
+      sessionStorage.setItem("pitching_studentId", id);
       if (data.sessionId) sessionStorage.setItem("pitching_sessionId", data.sessionId);
       router.push("/submit");
     } catch {
@@ -135,24 +158,15 @@ export default function HomePage() {
           </h1>
           {tagline && <p className="text-center text-slate-500 mb-6">{tagline}</p>}
 
-          <label className="block mb-4">
-            <span className="text-sm text-slate-600">ชื่อ-นามสกุล</span>
-            <input
-              className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="เช่น สมชาย ใจดี"
-            />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-          </label>
-
           <label className="block mb-6">
             <span className="text-sm text-slate-600">รหัสนักศึกษา</span>
             <input
               className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleNext()}
               placeholder="เช่น 6501234567"
+              autoComplete="off"
             />
             {errors.studentId && <p className="text-red-500 text-sm mt-1">{errors.studentId}</p>}
             {!errors.studentId && idStatus === "checking" && (
@@ -164,10 +178,17 @@ export default function HomePage() {
               </p>
             )}
             {!errors.studentId && idStatus === "submitted" && (
-              <p className="text-yellow-600 text-sm mt-1">รหัสนักศึกษานี้ส่งผลงานไปแล้ว</p>
+              <p className="text-yellow-600 text-sm mt-1">
+                รหัสนักศึกษานี้ส่งผลงานไปแล้ว{resolvedName ? ` (${resolvedName})` : ""}
+              </p>
             )}
             {!errors.studentId && idStatus === "valid" && (
-              <p className="text-green-600 text-sm mt-1">พบรหัสนักศึกษานี้ในระบบ</p>
+              <p className="text-green-600 text-sm mt-1">
+                ✓ {resolvedName || "พบรหัสนักศึกษานี้ในระบบ"}
+              </p>
+            )}
+            {!errors.studentId && idStatus === "instructor" && (
+              <p className="text-green-600 text-sm mt-1">✓ อาจารย์ {resolvedName} (เข้าระบบเพื่อพรีวิว)</p>
             )}
           </label>
 

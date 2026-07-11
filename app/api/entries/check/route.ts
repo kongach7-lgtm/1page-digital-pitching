@@ -6,5 +6,6 @@ export async function GET(request: NextRequest) {
   const exists = studentId.length > 0 && store.entriesByStudentId.has(studentId);
   // ถ้าอาจารย์ยังไม่ได้อัปโหลดรายชื่อ (roster ว่าง) ให้ผ่านได้ทุกรหัสเหมือนเดิม
   const rosterValid = store.roster.size === 0 || store.roster.has(studentId);
-  return NextResponse.json({ exists, rosterValid, sessionId: store.sessionId });
+  const name = store.roster.get(studentId);
+  return NextResponse.json({ exists, rosterValid, name, sessionId: store.sessionId });
 }
