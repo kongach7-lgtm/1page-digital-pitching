@@ -159,6 +159,7 @@ export default function AdminPage() {
   const [timerError, setTimerError] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
+  // ใช้ตอน login / เข้าหน้าครั้งแรกเท่านั้น เพราะจะ set ค่าทับช่องที่กำลังพิมพ์อยู่
   const fetchConfig = useCallback(async () => {
     const res = await fetch("/api/config");
     if (!res.ok) return;
@@ -167,6 +168,28 @@ export default function AdminPage() {
     if (data.config?.tagline !== undefined) setTagline(data.config.tagline);
     if (data.config?.fieldLabels) setFieldLabels(data.config.fieldLabels);
     if (data.config?.awardCount !== undefined) setAwardCount(data.config.awardCount);
+    if (data.config?.submitTimer) {
+      setSubmitTimer(data.config.submitTimer);
+      if (data.config.submitTimer.durationSeconds > 0) {
+        setSubmitMinutes(Math.floor(data.config.submitTimer.durationSeconds / 60));
+        setSubmitSeconds(data.config.submitTimer.durationSeconds % 60);
+      }
+    }
+    if (data.config?.voteTimer) {
+      setVoteTimer(data.config.voteTimer);
+      if (data.config.voteTimer.durationSeconds > 0) {
+        setVoteMinutes(Math.floor(data.config.voteTimer.durationSeconds / 60));
+        setVoteSeconds(data.config.voteTimer.durationSeconds % 60);
+      }
+    }
+  }, []);
+
+  // poll ทุก 5 วิ เพื่อ sync สถานะตัวจับเวลาข้ามอาจารย์คนอื่น โดยไม่แตะช่อง
+  // ตั้งค่าโปรเจกต์ที่ผู้ใช้อาจกำลังพิมพ์อยู่ (ต่างจาก fetchConfig ด้านบน)
+  const fetchTimerStatus = useCallback(async () => {
+    const res = await fetch("/api/config");
+    if (!res.ok) return;
+    const data = await res.json();
     if (data.config?.submitTimer) {
       setSubmitTimer(data.config.submitTimer);
       if (data.config.submitTimer.durationSeconds > 0) {
@@ -231,7 +254,7 @@ export default function AdminPage() {
     if (role === "master") fetchInstructorRosterCount(passcode);
     const interval = setInterval(() => {
       fetchEntries();
-      fetchConfig();
+      fetchTimerStatus();
     }, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
