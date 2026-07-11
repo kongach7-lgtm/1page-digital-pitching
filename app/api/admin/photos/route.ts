@@ -4,13 +4,14 @@ import sharp from "sharp";
 import JSZip from "jszip";
 import { Resvg } from "@resvg/resvg-js";
 import { store, getVoteCounts } from "@/lib/store";
+import { isAuthorizedAdminCode } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 function isAuthorized(request: NextRequest): boolean {
   const passcode =
     request.headers.get("x-admin-passcode") ?? request.nextUrl.searchParams.get("passcode");
-  return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
+  return isAuthorizedAdminCode(passcode);
 }
 
 // เซิร์ฟเวอร์ (เช่น Railway) มักไม่มีฟอนต์ไทยติดตั้งไว้เลย — เดิมลองฝัง @font-face แบบ

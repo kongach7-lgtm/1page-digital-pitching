@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { store, getVoteCounts } from "@/lib/store";
+import { isAuthorizedAdminCode } from "@/lib/auth";
 
 function isAuthorized(request: NextRequest): boolean {
   const passcode =
     request.headers.get("x-admin-passcode") ?? request.nextUrl.searchParams.get("passcode");
-  return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
+  return isAuthorizedAdminCode(passcode);
 }
 
 export async function GET(request: NextRequest) {

@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
+import { isAuthorizedRequest } from "@/lib/auth";
 
 // ไม่มี arg และไม่เรียก dynamic API เลย ทำให้ Next.js เข้าใจผิดว่า route นี้ static ได้
 // (bake ค่าตอน build แล้ว method อื่นๆ เช่น POST หายไปจาก production build) ต้องบังคับ dynamic ไว้
 export const dynamic = "force-dynamic";
 
-function isAuthorized(request: NextRequest): boolean {
-  const passcode = request.headers.get("x-admin-passcode");
-  return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
-}
-
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedRequest(request)) {
     return NextResponse.json({ error: "Passcode ไม่ถูกต้อง" }, { status: 401 });
   }
 

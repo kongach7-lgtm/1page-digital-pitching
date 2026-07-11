@@ -7,6 +7,8 @@ type Store = {
   votes: Map<string, Vote>;
   votedStudentIds: Set<string>;
   roster: Map<string, string>; // studentId -> name, uploaded by instructor
+  // รหัสอาจารย์ -> ชื่อ-นามสกุล อัปโหลดได้เฉพาะด้วย master passcode เท่านั้น
+  instructorRoster: Map<string, string>;
   config: SiteConfig;
   // เปลี่ยนค่าทุกครั้งที่ reset session — ฝั่งนักศึกษาใช้เทียบเพื่อรู้ว่าต้อง login ใหม่
   sessionId: string;
@@ -37,6 +39,7 @@ function createStore(): Store {
     votes: new Map(),
     votedStudentIds: new Set(),
     roster: new Map(),
+    instructorRoster: new Map(),
     config: defaultConfig(),
     sessionId: randomUUID(),
   };

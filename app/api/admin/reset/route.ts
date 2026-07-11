@@ -3,11 +3,7 @@ import { readdir, unlink } from "fs/promises";
 import { randomUUID } from "crypto";
 import path from "path";
 import { store } from "@/lib/store";
-
-function isAuthorized(request: NextRequest): boolean {
-  const passcode = request.headers.get("x-admin-passcode");
-  return Boolean(passcode) && passcode === process.env.ADMIN_PASSCODE;
-}
+import { isAuthorizedRequest as isAuthorized } from "@/lib/auth";
 
 export async function DELETE(request: NextRequest) {
   if (!isAuthorized(request)) {

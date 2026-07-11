@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+type CodeRole = "master" | "instructor" | null;
+
 type EntryWithVotes = {
   id: string;
   name: string;
@@ -97,6 +99,32 @@ export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [role, setRole] = useState<CodeRole>(null);
+  const [loggedInName, setLoggedInName] = useState<string | null>(null);
+
+  // ตรวจรหัสแบบสดขณะพิมพ์ (ก่อนกด login) — เจอชื่อใน instructor roster ก็โชว์ทันที
+  const [liveCheck, setLiveCheck] = useState<{ role: CodeRole; name?: string }>({ role: null });
+  useEffect(() => {
+    if (authorized) return;
+    const code = passcode.trim();
+    if (!code) {
+      setLiveCheck({ role: null });
+      return;
+    }
+    const timeout = setTimeout(() => {
+      fetch(`/api/admin/check-code?code=${encodeURIComponent(code)}`)
+        .then((res) => res.json())
+        .then((data) => setLiveCheck({ role: data.role ?? null, name: data.name }))
+        .catch(() => setLiveCheck({ role: null }));
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [passcode, authorized]);
+
+  const [instructorRosterCount, setInstructorRosterCount] = useState<number | null>(null);
+  const [uploadingInstructorRoster, setUploadingInstructorRoster] = useState(false);
+  const [instructorRosterError, setInstructorRosterError] = useState<string | null>(null);
+  const [instructorRosterMessage, setInstructorRosterMessage] = useState<string | null>(null);
+  const instructorRosterFileInputRef = useRef<HTMLInputElement>(null);
 
   const [entries, setEntries] = useState<EntryWithVotes[]>([]);
   const [totalVotes, setTotalVotes] = useState(0);
@@ -174,10 +202,23 @@ export default function AdminPage() {
     setTotalVotes(data.totalVotes ?? 0);
   }, []);
 
+  const fetchInstructorRosterCount = useCallback(async (currentPasscode: string) => {
+    const res = await fetch("/api/admin/instructor-roster", {
+      headers: { "x-admin-passcode": currentPasscode },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    setInstructorRosterCount(data.count ?? 0);
+  }, []);
+
   useEffect(() => {
     const stored = sessionStorage.getItem("pitching_admin_passcode");
-    if (stored) {
+    const storedRole = sessionStorage.getItem("pitching_admin_role") as CodeRole;
+    const storedName = sessionStorage.getItem("pitching_admin_name");
+    if (stored && storedRole) {
       setPasscode(stored);
+      setRole(storedRole);
+      setLoggedInName(storedName);
       setAuthorized(true);
     }
   }, []);
@@ -187,6 +228,7 @@ export default function AdminPage() {
     fetchEntries();
     fetchRosterCount(passcode);
     fetchConfig();
+    if (role === "master") fetchInstructorRosterCount(passcode);
     const interval = setInterval(() => {
       fetchEntries();
       fetchConfig();
@@ -254,7 +296,7 @@ export default function AdminPage() {
 
   const handleLogin = async () => {
     if (!passcode.trim()) {
-      setLoginError("กรุณากรอก passcode");
+      setLoginError("กรุณากรอกรหัส");
       return;
     }
     setLoggingIn(true);
@@ -265,16 +307,54 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passcode: passcode.trim() }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        setLoginError("Passcode ไม่ถูกต้อง");
+        setLoginError(data.error ?? "รหัสไม่ถูกต้อง");
         return;
       }
       sessionStorage.setItem("pitching_admin_passcode", passcode.trim());
+      sessionStorage.setItem("pitching_admin_role", data.role);
+      if (data.name) sessionStorage.setItem("pitching_admin_name", data.name);
+      setRole(data.role);
+      setLoggedInName(data.name ?? null);
       setAuthorized(true);
     } catch {
       setLoginError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
       setLoggingIn(false);
+    }
+  };
+
+  const handleInstructorRosterUpload = async () => {
+    const file = instructorRosterFileInputRef.current?.files?.[0];
+    if (!file) {
+      setInstructorRosterError("กรุณาเลือกไฟล์ Excel (.xlsx) ก่อน");
+      return;
+    }
+
+    setUploadingInstructorRoster(true);
+    setInstructorRosterError(null);
+    setInstructorRosterMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/instructor-roster", {
+        method: "POST",
+        headers: { "x-admin-passcode": passcode },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInstructorRosterError(data.error ?? "อัปโหลดไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      setInstructorRosterCount(data.count ?? 0);
+      setInstructorRosterMessage(`โหลดรายชื่อผู้มีสิทธิ์แล้ว ${data.count} คน`);
+      if (instructorRosterFileInputRef.current) instructorRosterFileInputRef.current.value = "";
+    } catch {
+      setInstructorRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setUploadingInstructorRoster(false);
     }
   };
 
@@ -387,14 +467,18 @@ export default function AdminPage() {
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
-          <h1 className="text-xl font-bold text-brand-badge mb-4 text-center">Admin Login</h1>
+          <h1 className="text-xl font-bold text-brand-badge mb-4 text-center">Login (รหัสอาจารย์)</h1>
           <input
             type="password"
             className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
-            placeholder="Passcode"
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            placeholder="รหัส"
           />
+          {liveCheck.role === "instructor" && (
+            <p className="text-green-400 text-sm mt-2">✓ {liveCheck.name}</p>
+          )}
           {loginError && <p className="text-red-400 text-sm mt-2">{loginError}</p>}
           <button
             onClick={handleLogin}
@@ -413,9 +497,11 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto">
         <header className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-brand-badge">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-brand-badge">Setup Page</h1>
             <p className="text-white/60 text-sm mt-1">
               {entries.length} ผลงาน · {totalVotes} โหวต
+              {role === "instructor" && loggedInName && ` · ${loggedInName}`}
+              {role === "master" && " · ผู้ดูแลระบบหลัก"}
             </p>
           </div>
           <div className="flex gap-2">
@@ -542,6 +628,41 @@ export default function AdminPage() {
           </div>
           {timerError && <p className="text-red-400 text-sm mt-2">{timerError}</p>}
         </div>
+
+        {role === "master" && (
+          <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h2 className="font-semibold text-white mb-1">จัดการรายชื่ออาจารย์ผู้มีสิทธิ์ (Excel)</h2>
+            <p className="text-white/50 text-sm mb-3">
+              ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสอาจารย์</span> และ{" "}
+              <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
+              (ห้ามมีหัวตาราง) รายชื่อนี้จะอยู่ตลอดจนกว่าจะอัปโหลดไฟล์ใหม่ทับ ใครมีรหัสในรายชื่อนี้จะ login เข้า Setup Page ได้
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                ref={instructorRosterFileInputRef}
+                type="file"
+                accept=".xlsx"
+                className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
+              />
+              <button
+                onClick={handleInstructorRosterUpload}
+                disabled={uploadingInstructorRoster}
+                className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+              >
+                {uploadingInstructorRoster ? "กำลังอัปโหลด..." : "อัปโหลด"}
+              </button>
+              <span className="text-white/50 text-sm">
+                {instructorRosterCount === null
+                  ? ""
+                  : instructorRosterCount === 0
+                  ? "ยังไม่มีรายชื่อผู้มีสิทธิ์ (ตอนนี้เข้าได้เฉพาะ master passcode)"
+                  : `มีรายชื่อในระบบ ${instructorRosterCount} คน`}
+              </span>
+            </div>
+            {instructorRosterError && <p className="text-red-400 text-sm mt-2">{instructorRosterError}</p>}
+            {instructorRosterMessage && <p className="text-green-400 text-sm mt-2">{instructorRosterMessage}</p>}
+          </div>
+        )}
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
           <h2 className="font-semibold text-white mb-1">อัปโหลดรายชื่อนักศึกษา (Excel)</h2>
