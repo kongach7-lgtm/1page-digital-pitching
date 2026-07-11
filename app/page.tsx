@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import StudentBackground from "@/components/StudentBackground";
+
+const ID_CHECK_DEBOUNCE_MS = 350;
 
 export default function HomePage() {
   const router = useRouter();
@@ -14,6 +16,11 @@ export default function HomePage() {
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [tagline, setTagline] = useState("ส่งไอเดียธุรกิจของคุณ แล้วโหวตให้เพื่อน");
 
+  // ผลตรวจสอบรหัสนักศึกษาแบบ live ระหว่างพิมพ์ (debounce) แยกจาก errors.studentId
+  // ซึ่งใช้เฉพาะตอนกด "ถัดไป" แล้วพบว่าช่องว่างเปล่า
+  const [idStatus, setIdStatus] = useState<"idle" | "checking" | "valid" | "invalid" | "submitted">("idle");
+  const idCheckSeq = useRef(0);
+
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
@@ -23,6 +30,37 @@ export default function HomePage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const id = studentId.trim();
+    const isAdminPreview = name.trim().toLowerCase() === "admin";
+    if (isAdminPreview || !id) {
+      setIdStatus("idle");
+      return;
+    }
+    setIdStatus("checking");
+    const seq = ++idCheckSeq.current;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/entries/check?studentId=${encodeURIComponent(id)}`, { cache: "no-store" });
+        const data = await res.json();
+        if (idCheckSeq.current !== seq) return; // พิมพ์ต่อไปแล้ว ผลนี้เก่าไม่ใช้
+        if (!data.rosterValid) {
+          setIdStatus("invalid");
+          return;
+        }
+        if (data.exists) {
+          setIdStatus("submitted");
+          return;
+        }
+        setIdStatus("valid");
+      } catch {
+        if (idCheckSeq.current !== seq) return;
+        setIdStatus("invalid");
+      }
+    }, ID_CHECK_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [studentId, name]);
 
   const handleNext = async () => {
     const nextErrors: typeof errors = {};
@@ -50,6 +88,16 @@ export default function HomePage() {
       } finally {
         setChecking(false);
       }
+      return;
+    }
+
+    // ถ้าผลตรวจสอบ live ระหว่างพิมพ์สรุปชัดเจนแล้วว่าไม่ผ่าน ใช้ผลนั้นได้เลยไม่ต้องยิงซ้ำ
+    if (idStatus === "invalid") {
+      setErrors({ studentId: "ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบและกรอกรหัสนักศึกษาให้ถูกต้อง" });
+      return;
+    }
+    if (idStatus === "submitted") {
+      setAlreadySubmitted(true);
       return;
     }
 
@@ -107,6 +155,20 @@ export default function HomePage() {
               placeholder="เช่น 6501234567"
             />
             {errors.studentId && <p className="text-red-500 text-sm mt-1">{errors.studentId}</p>}
+            {!errors.studentId && idStatus === "checking" && (
+              <p className="text-slate-400 text-sm mt-1">กำลังตรวจสอบ...</p>
+            )}
+            {!errors.studentId && idStatus === "invalid" && (
+              <p className="text-red-500 text-sm mt-1">
+                ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบและกรอกรหัสนักศึกษาให้ถูกต้อง
+              </p>
+            )}
+            {!errors.studentId && idStatus === "submitted" && (
+              <p className="text-yellow-600 text-sm mt-1">รหัสนักศึกษานี้ส่งผลงานไปแล้ว</p>
+            )}
+            {!errors.studentId && idStatus === "valid" && (
+              <p className="text-green-600 text-sm mt-1">พบรหัสนักศึกษานี้ในระบบ</p>
+            )}
           </label>
 
           {alreadySubmitted && (
