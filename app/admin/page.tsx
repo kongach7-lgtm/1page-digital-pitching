@@ -184,26 +184,15 @@ export default function AdminPage() {
     }
   }, []);
 
-  // poll ทุก 5 วิ เพื่อ sync สถานะตัวจับเวลาข้ามอาจารย์คนอื่น โดยไม่แตะช่อง
-  // ตั้งค่าโปรเจกต์ที่ผู้ใช้อาจกำลังพิมพ์อยู่ (ต่างจาก fetchConfig ด้านบน)
+  // poll ทุก 5 วิ เพื่อ sync สถานะนับถอยหลังที่กำลังทำงานอยู่ข้ามอาจารย์คนอื่น
+  // (สำหรับข้อความ "เหลือเวลา...") เท่านั้น — ห้ามแตะช่องกรอกนาที/วินาทีที่ผู้ใช้
+  // กำลังตั้งค่าไว้สำหรับรอบถัดไป ไม่งั้นจะพิมพ์เวลาใหม่ไม่ได้เพราะถูกทับด้วยค่าเก่า
   const fetchTimerStatus = useCallback(async () => {
     const res = await fetch("/api/config");
     if (!res.ok) return;
     const data = await res.json();
-    if (data.config?.submitTimer) {
-      setSubmitTimer(data.config.submitTimer);
-      if (data.config.submitTimer.durationSeconds > 0) {
-        setSubmitMinutes(Math.floor(data.config.submitTimer.durationSeconds / 60));
-        setSubmitSeconds(data.config.submitTimer.durationSeconds % 60);
-      }
-    }
-    if (data.config?.voteTimer) {
-      setVoteTimer(data.config.voteTimer);
-      if (data.config.voteTimer.durationSeconds > 0) {
-        setVoteMinutes(Math.floor(data.config.voteTimer.durationSeconds / 60));
-        setVoteSeconds(data.config.voteTimer.durationSeconds % 60);
-      }
-    }
+    if (data.config?.submitTimer) setSubmitTimer(data.config.submitTimer);
+    if (data.config?.voteTimer) setVoteTimer(data.config.voteTimer);
   }, []);
 
   const fetchRosterCount = useCallback(async (currentPasscode: string) => {
