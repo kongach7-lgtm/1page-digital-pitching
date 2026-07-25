@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
   const teacher = getTeacher(request);
   if (!teacher) return unauthorized("ต้องเข้าสู่ระบบในฐานะอาจารย์");
 
+  // รหัสอาจารย์อาจถูก admin ลบไปแล้วระหว่างที่ยังมี cookie ค้างอยู่ — เช็คก่อน insert
+  // กันชน FOREIGN KEY constraint ตอน admin ลบรหัสอาจารย์นี้ออกไปแล้ว
+  const teacherExists = db.prepare("SELECT 1 FROM teachers WHERE id = ?").get(teacher.teacherId);
+  if (!teacherExists) return unauthorized("บัญชีอาจารย์นี้ถูกลบออกจากระบบแล้ว กรุณาเข้าสู่ระบบใหม่");
+
   const body = await request.json().catch(() => null);
   const projectName = String(body?.projectName ?? "").trim() || "1-Page Digital Pitching";
 

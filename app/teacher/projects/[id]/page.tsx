@@ -112,6 +112,11 @@ export default function ProjectDashboardPage() {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const [confirmingDeleteEntryId, setConfirmingDeleteEntryId] = useState<number | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState(false);
+
+  const [finishingVoting, setFinishingVoting] = useState(false);
+
   const [rosterCount, setRosterCount] = useState<number | null>(null);
   const [uploadingRoster, setUploadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState<string | null>(null);
@@ -338,6 +343,42 @@ export default function ProjectDashboardPage() {
     }
   };
 
+  const handleDeleteEntry = async (entryId: number) => {
+    setDeletingEntry(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/teacher/projects/${id}/entries/${entryId}`, { method: "DELETE" });
+      if (!res.ok) {
+        setActionError("ลบผลงานไม่สำเร็จ");
+        return;
+      }
+      setConfirmingDeleteEntryId(null);
+      fetchEntries();
+    } catch {
+      setActionError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setDeletingEntry(false);
+    }
+  };
+
+  const handleFinishVoting = async () => {
+    setFinishingVoting(true);
+    setTimerError(null);
+    try {
+      const res = await fetch(`/api/teacher/projects/${id}/finish-voting`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setTimerError(data.error ?? "จบการโหวตไม่สำเร็จ");
+        return;
+      }
+      if (data.config?.voteTimer) setVoteTimer(data.config.voteTimer);
+    } catch {
+      setTimerError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setFinishingVoting(false);
+    }
+  };
+
   const handleReset = async () => {
     setResetting(true);
     setActionError(null);
@@ -445,7 +486,7 @@ export default function ProjectDashboardPage() {
           <div className="grid sm:grid-cols-3 gap-3 mb-3">
             {fieldLabels.map((label, i) => (
               <label key={i} className="block">
-                <span className="text-sm text-white/80">หัวข้อที่ {i + 1}{i === 0 ? " (บังคับ)" : ""}</span>
+                <span className="text-sm text-white/80">หัวข้อที่ {i + 1} (บังคับ)</span>
                 <input
                   className="mt-1 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
                   value={label}
@@ -497,17 +538,26 @@ export default function ProjectDashboardPage() {
               starting={startingSubmitTimer}
               timer={submitTimer}
             />
-            <TimerBlock
-              label="ช่วงโหวต"
-              actionLabel="โหวต"
-              minutes={voteMinutes}
-              seconds={voteSeconds}
-              onMinutesChange={setVoteMinutes}
-              onSecondsChange={setVoteSeconds}
-              onStart={() => handleStartTimer("vote", voteMinutes, voteSeconds)}
-              starting={startingVoteTimer}
-              timer={voteTimer}
-            />
+            <div>
+              <TimerBlock
+                label="ช่วงโหวต"
+                actionLabel="โหวต"
+                minutes={voteMinutes}
+                seconds={voteSeconds}
+                onMinutesChange={setVoteMinutes}
+                onSecondsChange={setVoteSeconds}
+                onStart={() => handleStartTimer("vote", voteMinutes, voteSeconds)}
+                starting={startingVoteTimer}
+                timer={voteTimer}
+              />
+              <button
+                onClick={handleFinishVoting}
+                disabled={finishingVoting}
+                className="w-full mt-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-medium px-4 py-2 transition text-sm"
+              >
+                {finishingVoting ? "กำลังประมวลผล..." : "โหวตเสร็จหมดแล้ว (จบก่อนหมดเวลา)"}
+              </button>
+            </div>
           </div>
           {timerError && <p className="text-red-400 text-sm mt-2">{timerError}</p>}
         </div>
@@ -552,6 +602,7 @@ export default function ProjectDashboardPage() {
                 <th className="px-3 py-2 text-left">รหัส</th>
                 <th className="px-3 py-2 text-left">{fieldLabels[2]}</th>
                 <th className="px-3 py-2 text-right">โหวต</th>
+                <th className="px-3 py-2 text-right">จัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -563,11 +614,19 @@ export default function ProjectDashboardPage() {
                   <td className="px-3 py-2">{entry.studentId}</td>
                   <td className="px-3 py-2">{entry.field3}</td>
                   <td className="px-3 py-2 text-right">{entry.voteCount}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() => setConfirmingDeleteEntryId(entry.id)}
+                      className="rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-medium px-3 py-1.5 transition"
+                    >
+                      ลบ
+                    </button>
+                  </td>
                 </tr>
               ))}
               {entries.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-white/40">
+                  <td colSpan={7} className="px-3 py-6 text-center text-white/40">
                     ยังไม่มีผลงาน
                   </td>
                 </tr>
@@ -576,6 +635,32 @@ export default function ProjectDashboardPage() {
           </table>
         </div>
       </div>
+
+      {confirmingDeleteEntryId !== null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
+          <div className="w-full max-w-sm bg-[#1A1A2E] border border-white/10 rounded-2xl p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-red-400 mb-2">ยืนยันลบผลงาน</h2>
+            <p className="text-white/60 text-sm mb-5">
+              การดำเนินการนี้จะลบผลงานนี้และโหวตที่ได้รับทั้งหมด ไม่สามารถย้อนกลับได้
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmingDeleteEntryId(null)}
+                className="flex-1 rounded-lg bg-white/10 hover:bg-white/20 text-white py-2.5 transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => handleDeleteEntry(confirmingDeleteEntryId)}
+                disabled={deletingEntry}
+                className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold py-2.5 transition"
+              >
+                {deletingEntry ? "กำลังลบ..." : "ยืนยันลบ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmingReset && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">

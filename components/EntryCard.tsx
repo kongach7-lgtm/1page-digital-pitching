@@ -16,6 +16,8 @@ export default function EntryCard({
   rank,
   disabled,
   onVote,
+  onEdit,
+  canEdit,
   fieldLabels,
   currentStudentId,
 }: {
@@ -23,6 +25,8 @@ export default function EntryCard({
   rank: number;
   disabled: boolean;
   onVote: (entryId: number) => void;
+  onEdit: (entryId: number) => void;
+  canEdit: boolean;
   fieldLabels: [string, string, string];
   currentStudentId: string | null;
 }) {
@@ -68,7 +72,15 @@ export default function EntryCard({
               </button>
             )}
           </div>
-          {isOwnEntry && (
+          {isOwnEntry && canEdit && (
+            <button
+              onClick={() => onEdit(entry.id)}
+              className="mt-2 w-full text-center text-xs font-medium text-white bg-brand-accent hover:bg-orange-600 rounded-lg py-1.5 px-1 transition"
+            >
+              ✏️ แก้ไขผลงานนี้
+            </button>
+          )}
+          {isOwnEntry && !canEdit && (
             <p className="mt-2 text-center text-[11px] leading-tight text-slate-400 bg-slate-100 rounded-lg py-1.5 px-1">
               ไม่สามารถโหวตผลงานของตนเองได้
             </p>

@@ -79,6 +79,9 @@ export default function BoardPage() {
   const [totalVotes, setTotalVotes] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [votingEntryId, setVotingEntryId] = useState<number | null>(null);
+  const [confirmingEditEntryId, setConfirmingEditEntryId] = useState<number | null>(null);
+  const [editingEntry, setEditingEntry] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [projectName, setProjectName] = useState("1-Page Digital Pitching");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
@@ -171,6 +174,7 @@ export default function BoardPage() {
   const remainingVoteSeconds = getRemaining(voteTimer);
   const votingActive = remainingVoteSeconds !== null && remainingVoteSeconds > 0;
   const votingEnded = remainingVoteSeconds !== null && remainingVoteSeconds <= 0;
+  const canEditEntry = remainingSubmitSeconds !== null && remainingSubmitSeconds > 0;
 
   const redirectedToWinnersRef = useRef(false);
   useEffect(() => {
@@ -210,6 +214,31 @@ export default function BoardPage() {
       return null;
     } catch {
       return "เชื่อมต่อไม่ได้ กรุณาลองใหม่";
+    }
+  };
+
+  const handleConfirmEdit = async () => {
+    if (confirmingEditEntryId === null) return;
+    const studentId = sessionStorage.getItem(`pitching_${code}_studentId`);
+    if (!studentId) return;
+
+    setEditingEntry(true);
+    setEditError(null);
+    try {
+      const res = await fetch(
+        `/api/p/${code}/entries/${confirmingEditEntryId}?studentId=${encodeURIComponent(studentId)}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setEditError(data?.error ?? "แก้ไขผลงานไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      router.push(`/p/${code}/submit`);
+    } catch {
+      setEditError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setEditingEntry(false);
     }
   };
 
@@ -255,6 +284,8 @@ export default function BoardPage() {
                 rank={voteRankById.get(entry.id) ?? 1}
                 disabled={hasVoted || !votingActive}
                 onVote={(entryId) => setVotingEntryId(entryId)}
+                onEdit={(entryId) => setConfirmingEditEntryId(entryId)}
+                canEdit={canEditEntry}
                 fieldLabels={fieldLabels}
                 currentStudentId={currentStudentId}
               />
@@ -264,6 +295,33 @@ export default function BoardPage() {
 
         {votingEntryId !== null && (
           <VoteConfirmModal onClose={() => setVotingEntryId(null)} onConfirm={handleVote} />
+        )}
+
+        {confirmingEditEntryId !== null && (
+          <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50">
+            <div className="w-full max-w-sm bg-white border border-white/60 rounded-2xl p-6 shadow-xl">
+              <h2 className="text-lg font-bold text-fuchsia-600 mb-2">ยืนยันแก้ไขผลงาน</h2>
+              <p className="text-slate-500 text-sm mb-5">
+                ผลงานที่ส่งไปแล้วจะถูกลบ แล้วพากลับไปหน้าส่งผลงานเพื่อกรอกและส่งใหม่อีกครั้ง
+              </p>
+              {editError && <p className="text-red-500 text-sm mb-3">{editError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmingEditEntryId(null)}
+                  className="flex-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleConfirmEdit}
+                  disabled={editingEntry}
+                  className="flex-1 rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-2.5 transition"
+                >
+                  {editingEntry ? "กำลังลบ..." : "ยืนยันแก้ไข"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </StudentBackground>

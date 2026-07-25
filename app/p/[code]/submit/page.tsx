@@ -37,6 +37,7 @@ export default function SubmitPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitTimer, setSubmitTimer] = useState<PhaseTimer>({ durationSeconds: 0, startedAt: null });
   const [, setTick] = useState(0);
@@ -100,6 +101,7 @@ export default function SubmitPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
+    setTouched((prev) => ({ ...prev, image: true }));
     setErrors((prev) => ({ ...prev, image: "" }));
     if (file) {
       const reader = new FileReader();
@@ -113,14 +115,27 @@ export default function SubmitPage() {
   const remainingSubmitSeconds = getRemaining(submitTimer);
   const submitTimerActive = remainingSubmitSeconds !== null && remainingSubmitSeconds > 0;
 
+  const fieldErrors: Record<string, string> = {
+    ...(!field1.trim() ? { field1: `กรุณากรอก${fieldLabels[0]}` } : {}),
+    ...(!field2.trim() ? { field2: `กรุณากรอก${fieldLabels[1]}` } : {}),
+    ...(!field3.trim() ? { field3: `กรุณากรอก${fieldLabels[2]}` } : {}),
+    ...(!imageFile
+      ? { image: "กรุณาแนบรูปถ่ายผลงาน" }
+      : imageFile.size > 5 * 1024 * 1024
+      ? { image: "ไฟล์รูปต้องไม่เกิน 5MB" }
+      : {}),
+  };
+  const isComplete = Object.keys(fieldErrors).length === 0;
+
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSubmit = async () => {
     if (!submitTimerActive) return;
-    const nextErrors: Record<string, string> = {};
-    if (!field1.trim()) nextErrors.field1 = `กรุณากรอก${fieldLabels[0]}`;
-    if (!imageFile) nextErrors.image = "กรุณาแนบรูปถ่ายผลงาน";
-    if (imageFile && imageFile.size > 5 * 1024 * 1024) nextErrors.image = "ไฟล์รูปต้องไม่เกิน 5MB";
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    setTouched({ field1: true, field2: true, field3: true, image: true });
+    setErrors(fieldErrors);
+    if (!isComplete) return;
 
     setSubmitting(true);
     try {
@@ -179,9 +194,12 @@ export default function SubmitPage() {
               className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               value={field1}
               onChange={(e) => setField1(e.target.value)}
+              onBlur={() => handleBlur("field1")}
               disabled={!submitTimerActive}
             />
-            {errors.field1 && <p className="text-red-500 text-sm mt-1">{errors.field1}</p>}
+            {(errors.field1 || (touched.field1 && fieldErrors.field1)) && (
+              <p className="text-red-500 text-sm mt-1">{errors.field1 || fieldErrors.field1}</p>
+            )}
           </label>
 
           <label className="block mb-4">
@@ -192,6 +210,7 @@ export default function SubmitPage() {
               accept="image/*"
               capture="environment"
               onChange={handleFileChange}
+              onBlur={() => handleBlur("image")}
               className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium disabled:file:bg-slate-300"
               disabled={!submitTimerActive}
             />
@@ -204,34 +223,44 @@ export default function SubmitPage() {
                 className="mt-3 rounded-lg max-h-64 object-contain border border-slate-200"
               />
             )}
-            {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
+            {(errors.image || (touched.image && fieldErrors.image)) && (
+              <p className="text-red-500 text-sm mt-1">{errors.image || fieldErrors.image}</p>
+            )}
           </label>
 
           <label className="block mb-4">
-            <span className="text-sm text-slate-600">{fieldLabels[1]}</span>
+            <span className="text-sm text-slate-600">{fieldLabels[1]} *</span>
             <textarea
               className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               rows={3}
               value={field2}
               onChange={(e) => setField2(e.target.value)}
+              onBlur={() => handleBlur("field2")}
               disabled={!submitTimerActive}
             />
+            {touched.field2 && fieldErrors.field2 && (
+              <p className="text-red-500 text-sm mt-1">{fieldErrors.field2}</p>
+            )}
           </label>
 
           <label className="block mb-6">
-            <span className="text-sm text-slate-600">{fieldLabels[2]}</span>
+            <span className="text-sm text-slate-600">{fieldLabels[2]} *</span>
             <input
               className="mt-1 w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-slate-800 placeholder-slate-300 focus:outline-none focus:border-brand-accent disabled:bg-slate-100 disabled:text-slate-400"
               value={field3}
               onChange={(e) => setField3(e.target.value)}
+              onBlur={() => handleBlur("field3")}
               disabled={!submitTimerActive}
             />
+            {touched.field3 && fieldErrors.field3 && (
+              <p className="text-red-500 text-sm mt-1">{fieldErrors.field3}</p>
+            )}
           </label>
 
           <div className="flex items-center gap-3">
             <button
               onClick={handleSubmit}
-              disabled={submitting || !submitTimerActive}
+              disabled={submitting || !submitTimerActive || !isComplete}
               className="flex-1 rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 transition"
             >
               {submitting ? "กำลังส่ง..." : "ส่งผลงาน"}
@@ -242,6 +271,11 @@ export default function SubmitPage() {
               </span>
             )}
           </div>
+          {submitTimerActive && !isComplete && (
+            <p className="text-amber-600 text-xs text-center mt-2">
+              กรุณากรอกข้อมูลให้ครบทุกช่องและแนบรูปถ่ายผลงานก่อนจึงจะส่งผลงานได้
+            </p>
+          )}
         </div>
       </main>
     </StudentBackground>
