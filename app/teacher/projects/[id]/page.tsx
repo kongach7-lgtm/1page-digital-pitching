@@ -110,6 +110,8 @@ export default function ProjectDashboardPage() {
   const [exportingPhotos, setExportingPhotos] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+  const [confirmingDeleteProject, setConfirmingDeleteProject] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [confirmingDeleteEntryId, setConfirmingDeleteEntryId] = useState<number | null>(null);
@@ -397,6 +399,23 @@ export default function ProjectDashboardPage() {
     }
   };
 
+  const handleDeleteProject = async () => {
+    setDeletingProject(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/teacher/projects/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setActionError("ลบโปรเจกต์ไม่สำเร็จ");
+        return;
+      }
+      router.push("/teacher");
+    } catch {
+      setActionError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setDeletingProject(false);
+    }
+  };
+
   if (checkingAuth) return <main className="min-h-screen" />;
 
   if (notFound404) {
@@ -450,6 +469,12 @@ export default function ProjectDashboardPage() {
               className="rounded-lg bg-red-600/80 hover:bg-red-600 text-white font-medium px-4 py-2 transition"
             >
               Reset โปรเจกต์
+            </button>
+            <button
+              onClick={() => setConfirmingDeleteProject(true)}
+              className="rounded-lg bg-red-800 hover:bg-red-700 text-white font-medium px-4 py-2 transition"
+            >
+              ลบโปรเจกต์
             </button>
           </div>
         </header>
@@ -682,6 +707,32 @@ export default function ProjectDashboardPage() {
                 className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold py-2.5 transition"
               >
                 {resetting ? "กำลังลบ..." : "ยืนยัน Reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmingDeleteProject && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
+          <div className="w-full max-w-sm bg-[#1A1A2E] border border-white/10 rounded-2xl p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-red-400 mb-2">ยืนยันลบโปรเจกต์</h2>
+            <p className="text-white/60 text-sm mb-5">
+              การดำเนินการนี้จะลบโปรเจกต์ &ldquo;{projectName}&rdquo; พร้อมผลงาน โหวต และรายชื่อนักศึกษาทั้งหมดถาวร
+              ไม่สามารถย้อนกลับได้ ลิงก์และ QR ของโปรเจกต์นี้จะใช้งานไม่ได้อีกต่อไป
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmingDeleteProject(false)}
+                className="flex-1 rounded-lg bg-white/10 hover:bg-white/20 text-white py-2.5 transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                disabled={deletingProject}
+                className="flex-1 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-2.5 transition"
+              >
+                {deletingProject ? "กำลังลบ..." : "ยืนยันลบโปรเจกต์"}
               </button>
             </div>
           </div>
