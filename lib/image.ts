@@ -2,17 +2,14 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import { UPLOADS_DIR } from "./db";
 
-// เก็บนอก public/ เพราะไฟล์ที่เขียนตอน runtime (หลัง build) ไม่ถูก serve
-// เสมอไปโดย Next.js production server บาง hosting setup — ให้ /api/uploads/[filename] อ่านไฟล์
-// จาก process.cwd() ตรงๆ แทน จะชัวร์กว่าในทุก environment
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/heic", "image/heif"];
 
 export type SaveImageResult = { url: string } | { error: string };
 
-export async function saveUploadedImage(file: File): Promise<SaveImageResult> {
+export async function saveUploadedImage(file: File, projectId: number): Promise<SaveImageResult> {
   if (!file || file.size === 0) {
     return { error: "กรุณาแนบรูปถ่ายกระดาษ 1 แผ่น" };
   }
@@ -26,7 +23,8 @@ export async function saveUploadedImage(file: File): Promise<SaveImageResult> {
     return { error: "รองรับเฉพาะไฟล์ JPG, PNG, HEIC" };
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  const projectDir = path.join(UPLOADS_DIR, String(projectId));
+  await mkdir(projectDir, { recursive: true });
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${randomUUID()}.jpg`;
 
@@ -35,12 +33,12 @@ export async function saveUploadedImage(file: File): Promise<SaveImageResult> {
       .rotate()
       .resize({ width: 1200, withoutEnlargement: true })
       .jpeg({ quality: 70 })
-      .toFile(path.join(UPLOAD_DIR, filename));
-    return { url: `/api/uploads/${filename}` };
+      .toFile(path.join(projectDir, filename));
+    return { url: `/api/uploads/${projectId}/${filename}` };
   } catch {
     const ext = path.extname(file.name) || ".jpg";
     const fallbackName = `${randomUUID()}${ext}`;
-    await writeFile(path.join(UPLOAD_DIR, fallbackName), buffer);
-    return { url: `/api/uploads/${fallbackName}` };
+    await writeFile(path.join(projectDir, fallbackName), buffer);
+    return { url: `/api/uploads/${projectId}/${fallbackName}` };
   }
 }

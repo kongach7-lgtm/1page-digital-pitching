@@ -1,8 +1,7 @@
 node_modules
 .next
 out
-uploads/*
-!uploads/.gitkeep
+/data
 .env.local
 *.log
 *.tsbuildinfo
@@ -12,3 +11,4 @@ uploads/*
 /presentation-queue
 /assignment-hub
 /compare-hub
+/grade-hub

@@ -1,7 +1,7 @@
 "use client";
 
 type EntryWithVotes = {
-  id: string;
+  id: number;
   name: string;
   studentId: string;
   imageUrl: string;
@@ -22,7 +22,7 @@ export default function EntryCard({
   entry: EntryWithVotes;
   rank: number;
   disabled: boolean;
-  onVote: (entryId: string) => void;
+  onVote: (entryId: number) => void;
   fieldLabels: [string, string, string];
   currentStudentId: string | null;
 }) {

@@ -13,15 +13,20 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "better-sqlite3": "^12.11.1",
     "exceljs": "^4.4.0",
+    "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "next": "^14.2.5",
+    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sharp": "^0.33.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -31,6 +36,7 @@
     "typescript": "^5.5.2"
   },
   "allowScripts": {
-    "sharp@0.33.5": true
+    "sharp@0.33.5": true,
+    "better-sqlite3": true
   }
 }
