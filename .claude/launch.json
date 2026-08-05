@@ -47,6 +47,14 @@
       "cwd": "compare-hub",
       "port": 3005,
       "autoPort": true
+    },
+    {
+      "name": "grade-hub",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\next\\dist\\bin\\next", "dev"],
+      "cwd": "grade-hub",
+      "port": 3006,
+      "autoPort": true
     }
   ]
 }

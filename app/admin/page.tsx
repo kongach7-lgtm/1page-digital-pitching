@@ -100,6 +100,12 @@ export default function AdminPage() {
     fetchTeachers();
   };
 
+  const handleDeleteAllTeachers = async () => {
+    if (!window.confirm(`ยืนยันลบรายชื่ออาจารย์ทั้งหมด ${teachers.length} คน?\n\nไม่สามารถกู้คืนได้`)) return;
+    await fetch("/api/admin/teachers", { method: "DELETE" });
+    fetchTeachers();
+  };
+
   const handleImport = async () => {
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
@@ -219,6 +225,17 @@ export default function AdminPage() {
           </div>
           {importError && <p className="text-red-400 text-sm mt-2">{importError}</p>}
           {importMessage && <p className="text-green-400 text-sm mt-2">{importMessage}</p>}
+        </div>
+
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-white">รายชื่ออาจารย์ ({teachers.length} คน)</h2>
+          <button
+            onClick={handleDeleteAllTeachers}
+            disabled={teachers.length === 0}
+            className="rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium px-3 py-1.5 transition"
+          >
+            ลบทั้งหมด
+          </button>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-white/10">

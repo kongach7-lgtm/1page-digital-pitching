@@ -28,3 +28,9 @@ export async function POST(request: NextRequest) {
   const info = db.prepare("INSERT INTO teachers (code, name) VALUES (?, ?)").run(code, name);
   return NextResponse.json({ ok: true, id: info.lastInsertRowid }, { status: 201 });
 }
+
+export async function DELETE(request: NextRequest) {
+  if (!getAdmin(request)) return unauthorized("ต้องเข้าสู่ระบบผู้ดูแลระบบ");
+  db.prepare("DELETE FROM teachers").run();
+  return NextResponse.json({ ok: true });
+}
