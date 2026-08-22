@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { UsageDashboard } from "@/components/UsageDashboard";
 
 type Teacher = { id: number; code: string; name: string; created_at: string };
 
@@ -271,6 +272,10 @@ export default function AdminPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-8">
+          <UsageDashboard />
         </div>
       </div>
     </main>

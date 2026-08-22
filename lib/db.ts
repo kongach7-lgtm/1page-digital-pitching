@@ -80,10 +80,22 @@ function ensureDb(): Database.Database {
       UNIQUE(project_id, voter_student_id)
     );
 
+    -- ประวัติการเข้าสู่ระบบของอาจารย์ (audit log) — เก็บ code/name ตอนเข้าใช้งานไว้ตรงๆ (ไม่ผูก FK)
+    -- เพราะเป็น log ที่ต้องคงอยู่ถาวรแม้ภายหลัง Admin จะลบอาจารย์คนนั้นออกจากรายชื่อแล้วก็ตาม
+    CREATE TABLE IF NOT EXISTS teacher_login_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      teacher_id INTEGER NOT NULL,
+      teacher_code TEXT NOT NULL,
+      teacher_name TEXT NOT NULL,
+      logged_in_at INTEGER NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_projects_teacher ON projects(teacher_id);
     CREATE INDEX IF NOT EXISTS idx_students_project ON students(project_id);
     CREATE INDEX IF NOT EXISTS idx_entries_project ON entries(project_id);
     CREATE INDEX IF NOT EXISTS idx_votes_project_entry ON votes(project_id, entry_id);
+    CREATE INDEX IF NOT EXISTS idx_login_log_teacher ON teacher_login_log(teacher_id);
+    CREATE INDEX IF NOT EXISTS idx_login_log_time ON teacher_login_log(logged_in_at);
   `);
 
   globalForDb.__pitchingDb = instance;
