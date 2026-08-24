@@ -206,8 +206,8 @@ export default function AdminPage() {
           <h2 className="font-semibold text-white mb-1">นำเข้าจากไฟล์ Excel</h2>
           <p className="text-white/50 text-sm mb-3">
             ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสอาจารย์</span> และ{" "}
-            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
-            (ห้ามมีหัวตาราง) รหัสที่มีอยู่แล้วจะถูกข้าม ไม่ทับของเดิม
+            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — มีหัวตารางหรือไม่ก็ได้ ตรวจสอบอัตโนมัติ
+            รหัสที่มีอยู่แล้วจะถูกข้าม ไม่ทับของเดิม
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <input
