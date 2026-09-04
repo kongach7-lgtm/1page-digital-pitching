@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UsageDashboard } from "@/components/UsageDashboard";
+import { TeacherActivityPanel } from "@/components/TeacherActivityPanel";
 
 type Teacher = { id: number; code: string; name: string; created_at: string };
 
@@ -273,6 +274,8 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        <TeacherActivityPanel />
 
         <div className="mt-8">
           <UsageDashboard />
