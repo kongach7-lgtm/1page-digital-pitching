@@ -1,9 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { QrCode } from "./QrCode";
+import { buildExportFilename } from "@/lib/export-filename";
 
-export function LinkPanel({ label, url }: { label: string; url: string }) {
+export function LinkPanel({
+  label,
+  url,
+  qrLabel,
+  projectName,
+}: {
+  label: string;
+  url: string;
+  // ชื่อสั้นๆ ใช้ตั้งชื่อไฟล์ตอนดาวน์โหลด QR (label เต็มอาจมีวงเล็บ/ยาวเกินไป)
+  qrLabel: string;
+  projectName?: string;
+}) {
+  const canvasId = useId();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -16,10 +29,19 @@ export function LinkPanel({ label, url }: { label: string; url: string }) {
     }
   };
 
+  const handleDownload = () => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.download = buildExportFilename("1page-digital-pitching", projectName ?? "", qrLabel, "png");
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
       <p className="font-semibold text-white/90 text-sm">{label}</p>
-      <QrCode value={url} size={128} />
+      <QrCode value={url} size={128} id={canvasId} />
       <p className="w-full break-all rounded-lg bg-white/10 px-3 py-2 text-xs text-white/60">{url}</p>
       <div className="flex w-full gap-2">
         <button
@@ -37,6 +59,12 @@ export function LinkPanel({ label, url }: { label: string; url: string }) {
           เปิดลิงก์
         </a>
       </div>
+      <button
+        onClick={handleDownload}
+        className="w-full rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium py-2 transition"
+      >
+        ดาวน์โหลด QR Code
+      </button>
     </div>
   );
 }

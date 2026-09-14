@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { UsageDashboard } from "@/components/UsageDashboard";
+import { TeacherActivityPanel } from "@/components/TeacherActivityPanel";
+import { FileDropzone } from "@/components/FileDropzone";
 
 type Teacher = { id: number; code: string; name: string; created_at: string };
 
@@ -21,7 +23,7 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const fetchTeachers = useCallback(async () => {
     const res = await fetch("/api/admin/teachers", { cache: "no-store" });
@@ -108,8 +110,7 @@ export default function AdminPage() {
   };
 
   const handleImport = async () => {
-    const file = fileInputRef.current?.files?.[0];
-    if (!file) {
+    if (!importFile) {
       setImportError("กรุณาเลือกไฟล์ Excel (.xlsx) ก่อน");
       return;
     }
@@ -118,7 +119,7 @@ export default function AdminPage() {
     setImportMessage(null);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", importFile);
       const res = await fetch("/api/admin/teachers/import", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
@@ -126,7 +127,7 @@ export default function AdminPage() {
         return;
       }
       setImportMessage(`เพิ่มใหม่ ${data.added} คน (ข้าม ${data.skipped} คนที่มีรหัสซ้ำอยู่แล้ว)`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setImportFile(null);
       fetchTeachers();
     } catch {
       setImportError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
@@ -206,16 +207,13 @@ export default function AdminPage() {
           <h2 className="font-semibold text-white mb-1">นำเข้าจากไฟล์ Excel</h2>
           <p className="text-white/50 text-sm mb-3">
             ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสอาจารย์</span> และ{" "}
-            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
-            (ห้ามมีหัวตาราง) รหัสที่มีอยู่แล้วจะถูกข้าม ไม่ทับของเดิม
+            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — มีหัวตารางหรือไม่ก็ได้ ตรวจสอบอัตโนมัติ
+            รหัสที่มีอยู่แล้วจะถูกข้าม ไม่ทับของเดิม
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx"
-              className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
-            />
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <FileDropzone accept=".xlsx" file={importFile} onFileChange={setImportFile} />
+            </div>
             <button
               onClick={handleImport}
               disabled={importing}
@@ -273,6 +271,8 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        <TeacherActivityPanel />
 
         <div className="mt-8">
           <UsageDashboard />

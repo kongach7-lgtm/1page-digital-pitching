@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LinkPanel } from "@/components/LinkPanel";
+import { FileDropzone } from "@/components/FileDropzone";
 
 type EntryWithVotes = {
   id: number;
@@ -123,6 +124,7 @@ export default function ProjectDashboardPage() {
   const [uploadingRoster, setUploadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
+  const [rosterFile, setRosterFile] = useState<File | null>(null);
 
   const [newStudentId, setNewStudentId] = useState("");
   const [newStudentName, setNewStudentName] = useState("");
@@ -296,6 +298,7 @@ export default function ProjectDashboardPage() {
       }
       setRosterCount(data.count ?? 0);
       setRosterMessage(`โหลดรายชื่อนักศึกษาแล้ว ${data.count} คน`);
+      setRosterFile(null);
     } catch {
       setRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
@@ -519,9 +522,24 @@ export default function ProjectDashboardPage() {
         {actionError && <p className="text-red-400 text-sm mb-4">{actionError}</p>}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <LinkPanel label="ลิงก์สำหรับนักศึกษา (ส่งผลงาน + โหวต)" url={studentUrl || "กำลังโหลด..."} />
-          <LinkPanel label="กระดานผลงาน (โปรเจกเตอร์)" url={boardUrl || "กำลังโหลด..."} />
-          <LinkPanel label="ประกาศผลรางวัล" url={winnersUrl || "กำลังโหลด..."} />
+          <LinkPanel
+            label="ลิงก์สำหรับนักศึกษา (ส่งผลงาน + โหวต)"
+            url={studentUrl || "กำลังโหลด..."}
+            qrLabel="QR นักศึกษา"
+            projectName={projectName}
+          />
+          <LinkPanel
+            label="กระดานผลงาน (โปรเจกเตอร์)"
+            url={boardUrl || "กำลังโหลด..."}
+            qrLabel="QR กระดานผลงาน"
+            projectName={projectName}
+          />
+          <LinkPanel
+            label="ประกาศผลรางวัล"
+            url={winnersUrl || "กำลังโหลด..."}
+            qrLabel="QR ประกาศผลรางวัล"
+            projectName={projectName}
+          />
         </div>
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
@@ -625,14 +643,7 @@ export default function ProjectDashboardPage() {
         </div>
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
-          <h2 className="font-semibold text-white mb-1">รายชื่อนักศึกษา</h2>
-          <p className="text-white/50 text-sm mb-3">
-            {rosterCount === null
-              ? ""
-              : rosterCount === 0
-              ? "ยังไม่มีรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
-              : `มีรายชื่อในระบบ ${rosterCount} คน`}
-          </p>
+          <h2 className="font-semibold text-white mb-3">รายชื่อนักศึกษา</h2>
 
           <div className="mb-4 pb-4 border-b border-white/10">
             <h3 className="text-sm font-medium text-white/70 mb-2">เพิ่มรายคน</h3>
@@ -665,20 +676,30 @@ export default function ProjectDashboardPage() {
           <h3 className="text-sm font-medium text-white/70 mb-2">อัปโหลดจากไฟล์ Excel (แทนที่รายชื่อเดิมทั้งหมด)</h3>
           <p className="text-white/50 text-sm mb-3">
             ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสนักศึกษา</span> และ{" "}
-            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
-            (ห้ามมีหัวตาราง) เมื่ออัปโหลดแล้ว ระบบจะตรวจสอบว่ารหัสนักศึกษาที่กรอกหน้าแรกมีอยู่ในรายชื่อนี้ก่อนให้ส่งผลงาน
+            <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — มีหัวตารางหรือไม่ก็ได้ ตรวจสอบอัตโนมัติ
+            เมื่ออัปโหลดแล้ว ระบบจะตรวจสอบว่ารหัสนักศึกษาที่กรอกหน้าแรกมีอยู่ในรายชื่อนี้ก่อนให้ส่งผลงาน
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="file"
-              accept=".xlsx"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleRosterUpload(file);
-              }}
-              className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
-            />
-            {uploadingRoster && <span className="text-white/50 text-sm">กำลังอัปโหลด...</span>}
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <FileDropzone
+                accept=".xlsx"
+                disabled={uploadingRoster}
+                file={rosterFile}
+                onFileChange={(file) => {
+                  setRosterFile(file);
+                  if (file) handleRosterUpload(file);
+                }}
+              />
+            </div>
+            <span className="text-white/50 text-sm pt-2">
+              {uploadingRoster
+                ? "กำลังอัปโหลด..."
+                : rosterCount === null
+                ? ""
+                : rosterCount === 0
+                ? "ยังไม่ได้อัปโหลดรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
+                : `มีรายชื่อในระบบ ${rosterCount} คน`}
+            </span>
           </div>
           {rosterError && <p className="text-red-400 text-sm mt-2">{rosterError}</p>}
           {rosterMessage && <p className="text-green-400 text-sm mt-2">{rosterMessage}</p>}

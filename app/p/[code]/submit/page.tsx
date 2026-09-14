@@ -208,7 +208,6 @@ export default function SubmitPage() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleFileChange}
               onBlur={() => handleBlur("image")}
               className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium disabled:file:bg-slate-300"
