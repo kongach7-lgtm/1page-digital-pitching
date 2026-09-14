@@ -50,6 +50,41 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   return NextResponse.json({ ok: true, count: result.roster.size });
 }
 
+// เพิ่มนักศึกษาทีละคน (ต่างจาก POST ที่อัปโหลดไฟล์แล้วล้างรายชื่อเดิมทั้งหมด)
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const teacher = getTeacher(request);
+  if (!teacher) return unauthorized("ต้องเข้าสู่ระบบในฐานะอาจารย์");
+
+  const project = getOwnedProject(teacher.teacherId, params.id);
+  if (!project) return NextResponse.json({ error: "ไม่พบโปรเจกต์" }, { status: 404 });
+
+  const body = await request.json().catch(() => null);
+  const studentId = String(body?.studentId ?? "").trim();
+  const name = String(body?.name ?? "").trim();
+
+  if (!studentId || !name) {
+    return NextResponse.json({ error: "กรุณากรอกรหัสนักศึกษาและชื่อ-นามสกุลให้ครบ" }, { status: 400 });
+  }
+
+  const existing = db
+    .prepare("SELECT id FROM students WHERE project_id = ? AND student_id = ?")
+    .get(project.id, studentId);
+  if (existing) {
+    return NextResponse.json({ error: "รหัสนักศึกษานี้มีอยู่ในรายชื่อแล้ว" }, { status: 409 });
+  }
+
+  db.prepare("INSERT INTO students (project_id, student_id, name) VALUES (?, ?, ?)").run(
+    project.id,
+    studentId,
+    name
+  );
+
+  const count = (
+    db.prepare("SELECT COUNT(*) c FROM students WHERE project_id = ?").get(project.id) as { c: number }
+  ).c;
+  return NextResponse.json({ ok: true, count });
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const teacher = getTeacher(request);
   if (!teacher) return unauthorized("ต้องเข้าสู่ระบบในฐานะอาจารย์");

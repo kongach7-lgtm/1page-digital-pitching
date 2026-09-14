@@ -124,6 +124,11 @@ export default function ProjectDashboardPage() {
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
 
+  const [newStudentId, setNewStudentId] = useState("");
+  const [newStudentName, setNewStudentName] = useState("");
+  const [addingStudent, setAddingStudent] = useState(false);
+  const [addStudentError, setAddStudentError] = useState<string | null>(null);
+
   const [projectName, setProjectName] = useState("");
   const [tagline, setTagline] = useState("");
   const [fieldLabels, setFieldLabels] = useState<[string, string, string]>(DEFAULT_LABELS);
@@ -295,6 +300,38 @@ export default function ProjectDashboardPage() {
       setRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
       setUploadingRoster(false);
+    }
+  };
+
+  const handleAddStudent = async () => {
+    const studentId = newStudentId.trim();
+    const name = newStudentName.trim();
+    if (!studentId || !name) {
+      setAddStudentError("กรุณากรอกรหัสนักศึกษาและชื่อ-นามสกุลให้ครบ");
+      return;
+    }
+    setAddingStudent(true);
+    setAddStudentError(null);
+    setRosterMessage(null);
+    try {
+      const res = await fetch(`/api/teacher/projects/${id}/roster`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAddStudentError(data.error ?? "เพิ่มไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      setRosterCount(data.count ?? 0);
+      setRosterMessage(`เพิ่ม ${name} (${studentId}) แล้ว`);
+      setNewStudentId("");
+      setNewStudentName("");
+    } catch {
+      setAddStudentError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    } finally {
+      setAddingStudent(false);
     }
   };
 
@@ -588,7 +625,44 @@ export default function ProjectDashboardPage() {
         </div>
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
-          <h2 className="font-semibold text-white mb-1">อัปโหลดรายชื่อนักศึกษา (Excel)</h2>
+          <h2 className="font-semibold text-white mb-1">รายชื่อนักศึกษา</h2>
+          <p className="text-white/50 text-sm mb-3">
+            {rosterCount === null
+              ? ""
+              : rosterCount === 0
+              ? "ยังไม่มีรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
+              : `มีรายชื่อในระบบ ${rosterCount} คน`}
+          </p>
+
+          <div className="mb-4 pb-4 border-b border-white/10">
+            <h3 className="text-sm font-medium text-white/70 mb-2">เพิ่มรายคน</h3>
+            <div className="flex flex-wrap gap-3">
+              <input
+                className="flex-1 min-w-[140px] rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
+                placeholder="รหัสนักศึกษา"
+                value={newStudentId}
+                onChange={(e) => setNewStudentId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddStudent()}
+              />
+              <input
+                className="flex-1 min-w-[180px] rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-brand-accent"
+                placeholder="ชื่อ-นามสกุล"
+                value={newStudentName}
+                onChange={(e) => setNewStudentName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddStudent()}
+              />
+              <button
+                onClick={handleAddStudent}
+                disabled={addingStudent}
+                className="rounded-lg bg-brand-accent hover:bg-orange-600 disabled:opacity-50 text-white font-medium px-4 py-2 transition"
+              >
+                {addingStudent ? "กำลังเพิ่ม..." : "เพิ่ม"}
+              </button>
+            </div>
+            {addStudentError && <p className="text-red-400 text-sm mt-2">{addStudentError}</p>}
+          </div>
+
+          <h3 className="text-sm font-medium text-white/70 mb-2">อัปโหลดจากไฟล์ Excel (แทนที่รายชื่อเดิมทั้งหมด)</h3>
           <p className="text-white/50 text-sm mb-3">
             ไฟล์ .xlsx โดย <span className="text-white/70">คอลัมน์ A = รหัสนักศึกษา</span> และ{" "}
             <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — เริ่มข้อมูลที่แถวแรกเลย
@@ -605,13 +679,6 @@ export default function ProjectDashboardPage() {
               className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
             />
             {uploadingRoster && <span className="text-white/50 text-sm">กำลังอัปโหลด...</span>}
-            <span className="text-white/50 text-sm">
-              {rosterCount === null
-                ? ""
-                : rosterCount === 0
-                ? "ยังไม่ได้อัปโหลดรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
-                : `มีรายชื่อในระบบ ${rosterCount} คน`}
-            </span>
           </div>
           {rosterError && <p className="text-red-400 text-sm mt-2">{rosterError}</p>}
           {rosterMessage && <p className="text-green-400 text-sm mt-2">{rosterMessage}</p>}
