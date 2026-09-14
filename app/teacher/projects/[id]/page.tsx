@@ -485,9 +485,24 @@ export default function ProjectDashboardPage() {
         {actionError && <p className="text-red-400 text-sm mb-4">{actionError}</p>}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <LinkPanel label="ลิงก์สำหรับนักศึกษา (ส่งผลงาน + โหวต)" url={studentUrl || "กำลังโหลด..."} />
-          <LinkPanel label="กระดานผลงาน (โปรเจกเตอร์)" url={boardUrl || "กำลังโหลด..."} />
-          <LinkPanel label="ประกาศผลรางวัล" url={winnersUrl || "กำลังโหลด..."} />
+          <LinkPanel
+            label="ลิงก์สำหรับนักศึกษา (ส่งผลงาน + โหวต)"
+            url={studentUrl || "กำลังโหลด..."}
+            qrLabel="QR นักศึกษา"
+            projectName={projectName}
+          />
+          <LinkPanel
+            label="กระดานผลงาน (โปรเจกเตอร์)"
+            url={boardUrl || "กำลังโหลด..."}
+            qrLabel="QR กระดานผลงาน"
+            projectName={projectName}
+          />
+          <LinkPanel
+            label="ประกาศผลรางวัล"
+            url={winnersUrl || "กำลังโหลด..."}
+            qrLabel="QR ประกาศผลรางวัล"
+            projectName={projectName}
+          />
         </div>
 
         <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
