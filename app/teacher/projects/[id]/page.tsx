@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LinkPanel } from "@/components/LinkPanel";
+import { FileDropzone } from "@/components/FileDropzone";
 
 type EntryWithVotes = {
   id: number;
@@ -123,6 +124,7 @@ export default function ProjectDashboardPage() {
   const [uploadingRoster, setUploadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
+  const [rosterFile, setRosterFile] = useState<File | null>(null);
 
   const [projectName, setProjectName] = useState("");
   const [tagline, setTagline] = useState("");
@@ -291,6 +293,7 @@ export default function ProjectDashboardPage() {
       }
       setRosterCount(data.count ?? 0);
       setRosterMessage(`โหลดรายชื่อนักศึกษาแล้ว ${data.count} คน`);
+      setRosterFile(null);
     } catch {
       setRosterError("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
     } finally {
@@ -594,19 +597,22 @@ export default function ProjectDashboardPage() {
             <span className="text-white/70">คอลัมน์ B = ชื่อ-นามสกุล</span> — มีหัวตารางหรือไม่ก็ได้ ตรวจสอบอัตโนมัติ
             เมื่ออัปโหลดแล้ว ระบบจะตรวจสอบว่ารหัสนักศึกษาที่กรอกหน้าแรกมีอยู่ในรายชื่อนี้ก่อนให้ส่งผลงาน
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="file"
-              accept=".xlsx"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleRosterUpload(file);
-              }}
-              className="text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-accent file:px-3 file:py-2 file:text-white file:font-medium"
-            />
-            {uploadingRoster && <span className="text-white/50 text-sm">กำลังอัปโหลด...</span>}
-            <span className="text-white/50 text-sm">
-              {rosterCount === null
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <FileDropzone
+                accept=".xlsx"
+                disabled={uploadingRoster}
+                file={rosterFile}
+                onFileChange={(file) => {
+                  setRosterFile(file);
+                  if (file) handleRosterUpload(file);
+                }}
+              />
+            </div>
+            <span className="text-white/50 text-sm pt-2">
+              {uploadingRoster
+                ? "กำลังอัปโหลด..."
+                : rosterCount === null
                 ? ""
                 : rosterCount === 0
                 ? "ยังไม่ได้อัปโหลดรายชื่อ (ตอนนี้ทุกรหัสนักศึกษาผ่านได้)"
